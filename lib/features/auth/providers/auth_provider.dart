@@ -1,5 +1,7 @@
 // lib/features/auth/providers/auth_provider.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/mock/mock_auth_repository.dart';
+import '../../../core/mock/mock_data.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../models/user_model.dart';
@@ -82,15 +84,33 @@ class AuthState {
 // ─── Auth Notifier ───────────────────────────────────────────────────
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  final AuthRepository _repository;
+  final AuthRepository? _repository;
+  final MockAuthRepository? _mockRepository;
 
-  AuthNotifier(this._repository) : super(const AuthState.initial());
+  /// Khi kUseMock = true, dùng _mockRepository; ngược lại dùng _repository.
+  AuthNotifier.real(AuthRepository repository)
+      : _repository = repository,
+        _mockRepository = null,
+        super(const AuthState.initial());
+
+  AuthNotifier.mock(MockAuthRepository mockRepository)
+      : _repository = null,
+        _mockRepository = mockRepository,
+        super(const AuthState.initial());
+
+  // Deprecated constructor kept for backward compat; prefer named constructors
+  AuthNotifier(AuthRepository repository)
+      : _repository = repository,
+        _mockRepository = null,
+        super(const AuthState.initial());
 
   /// Called on app startup — tries to restore the session.
   Future<void> checkAuthStatus() async {
     state = const AuthState.loading();
     try {
-      final user = await _repository.tryAutoLogin();
+      final user = kUseMock
+          ? await _mockRepository!.tryAutoLogin()
+          : await _repository!.tryAutoLogin();
       if (user != null) {
         state = AuthState.authenticated(user);
       } else {
@@ -107,7 +127,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }) async {
     state = const AuthState.loading();
     try {
-      final user = await _repository.login(email: email, password: password);
+      final user = kUseMock
+          ? await _mockRepository!.login(email: email, password: password)
+          : await _repository!.login(email: email, password: password);
       state = AuthState.authenticated(user);
     } catch (e) {
       state = AuthState.unauthenticated(e.toString());
@@ -121,11 +143,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }) async {
     state = const AuthState.loading();
     try {
-      final user = await _repository.register(
-        email: email,
-        password: password,
-        username: username,
-      );
+      final user = kUseMock
+          ? await _mockRepository!.register(
+              email: email, password: password, username: username)
+          : await _repository!.register(
+              email: email, password: password, username: username);
       state = AuthState.authenticated(user);
     } catch (e) {
       state = AuthState.unauthenticated(e.toString());
@@ -134,12 +156,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> logout() async {
     state = const AuthState.loading();
-    await _repository.logout();
+    if (kUseMock) {
+      await _mockRepository!.logout();
+    } else {
+      await _repository!.logout();
+    }
     state = const AuthState.unauthenticated();
   }
 
   Future<void> forgotPassword(String email) async {
-    await _repository.forgotPassword(email);
+    if (kUseMock) {
+      await _mockRepository!.forgotPassword(email);
+    } else {
+      await _repository!.forgotPassword(email);
+    }
   }
 
   void updateUser(UserModel user) {
@@ -156,8 +186,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
 // ─── Auth Provider ───────────────────────────────────────────────────
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+  if (kUseMock) {
+    return AuthNotifier.mock(MockAuthRepository());
+  }
   final repository = ref.watch(authRepositoryProvider);
-  return AuthNotifier(repository);
+  return AuthNotifier.real(repository);
 });
 
 // Convenience providers

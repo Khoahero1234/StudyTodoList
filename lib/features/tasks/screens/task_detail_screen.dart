@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/date_utils.dart';
+import '../../../core/mock/mock_data.dart';
 import '../../../models/task_model.dart';
 import '../providers/task_provider.dart';
 import '../../../shared/widgets/app_button.dart';
@@ -41,10 +42,17 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
         });
         return;
       }
-      // Fallback: fetch from API
-      final task = await ref
-          .read(taskRepositoryProvider)
-          .getTaskById(widget.taskId);
+      // Fallback: fetch from repo
+      final TaskModel task;
+      if (kUseMock) {
+        task = await ref
+            .read(mockTaskRepositoryProvider)
+            .getTaskById(widget.taskId);
+      } else {
+        task = await ref
+            .read(taskRepositoryProvider)!
+            .getTaskById(widget.taskId);
+      }
       setState(() {
         _task = task;
         _isLoading = false;
@@ -63,9 +71,16 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     notifier.toggleTaskCompletion(widget.taskId);
 
     if (!_task!.isCompleted) {
-      final updated = await ref
-          .read(taskRepositoryProvider)
-          .completeTask(widget.taskId);
+      final TaskModel updated;
+      if (kUseMock) {
+        updated = await ref
+            .read(mockTaskRepositoryProvider)
+            .completeTask(widget.taskId);
+      } else {
+        updated = await ref
+            .read(taskRepositoryProvider)!
+            .completeTask(widget.taskId);
+      }
       setState(() => _task = updated);
     } else {
       setState(() => _task = _task!.copyWith(
@@ -100,7 +115,11 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
       ),
     );
     if (confirmed == true && mounted) {
-      await ref.read(taskRepositoryProvider).deleteTask(widget.taskId);
+      if (kUseMock) {
+        await ref.read(mockTaskRepositoryProvider).deleteTask(widget.taskId);
+      } else {
+        await ref.read(taskRepositoryProvider)!.deleteTask(widget.taskId);
+      }
       ref.read(taskListProvider.notifier).deleteTask(widget.taskId);
       if (mounted) context.pop();
     }

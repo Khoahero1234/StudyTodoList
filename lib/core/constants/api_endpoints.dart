@@ -13,7 +13,7 @@ class ApiEndpoints {
   static const String verifyEmail = '/auth/verify-email';
 
   // Users
-  static const String me = '/users/me';
+  static const String me = '/auth/me';
   static String userById(String id) => '/users/$id';
 
   // Tasks

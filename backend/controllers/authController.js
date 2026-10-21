@@ -30,7 +30,8 @@ exports.login = async (req, res) => {
                 currentStreak: user.currentStreak,
                 tokenBalance: user.tokenBalance,
                 isPremium: user.isPremium,
-                createdAt: user.createdAt
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt
             },
             accessToken,
             refreshToken
@@ -69,7 +70,8 @@ exports.register = async (req, res) => {
                 currentStreak: newUser.currentStreak,
                 tokenBalance: newUser.tokenBalance,
                 isPremium: newUser.isPremium,
-                createdAt: newUser.createdAt
+                createdAt: newUser.createdAt,
+                updatedAt: newUser.updatedAt
             },
             accessToken,
             refreshToken
@@ -115,7 +117,8 @@ exports.getCurrentUser = async (req, res) => {
             currentStreak: user.currentStreak,
             tokenBalance: user.tokenBalance,
             isPremium: user.isPremium,
-            createdAt: user.createdAt
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

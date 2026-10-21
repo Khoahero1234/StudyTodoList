@@ -22,6 +22,30 @@ model User {
   updatedAt     DateTime  @updatedAt
   tasks         Task[]
   categories    Category[]
+  wallet        Wallet?
+  orders          Order[]
+  inventoryItems  InventoryItem[]
+}
+
+model Wallet {
+  id           String             @id @default(uuid())
+  userId       String             @unique
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance      Int                @default(0)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  transactions TokenTransaction[]
+}
+
+model TokenTransaction {
+  id           String   @id @default(uuid())
+  walletId     String
+  wallet       Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  amount       Int
+  type         String
+  description  String?
+  referenceId  String?
+  createdAt    DateTime @default(now())
 }
 
 model Category {
@@ -71,4 +95,66 @@ model SubTask {
   isCompleted Boolean  @default(false)
   taskId      String
   task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+model ProductCategory {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id             String          @id @default(uuid())
+  name           String
+  description    String?
+  imageUrl       String?
+  price          Int             @default(0)
+  rarity         String          @default("common") // common, rare, epic, legendary
+  stock          Int             @default(999)
+  discountPct    Int             @default(0)
+  isAvailable    Boolean         @default(true)
+  premiumOnly    Boolean         @default(false)
+  categoryId     String?
+  category       ProductCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  orderItems     OrderItem[]
+  inventoryItems InventoryItem[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalAmount Int
+  status      String      @default("completed") // completed, pending, cancelled
+  items       OrderItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int     @default(1)
+  price     Int
+}
+
+model InventoryItem {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int      @default(1)
+  equipped  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, productId])
 }

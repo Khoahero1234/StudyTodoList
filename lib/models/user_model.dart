@@ -37,9 +37,9 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'] as String,
-      email: json['email'] as String,
-      username: json['username'] as String,
+      id: json['id'] as String? ?? '',
+      email: json['email'] as String? ?? '',
+      username: json['username'] as String? ?? '',
       avatarUrl: json['avatarUrl'] as String?,
       role: json['role'] as String? ?? 'customer',
       isActive: json['isActive'] as bool? ?? true,
@@ -49,10 +49,16 @@ class UserModel {
       currentStreak: json['currentStreak'] as int? ?? 0,
       longestStreak: json['longestStreak'] as int? ?? 0,
       lastLoginDate: json['lastLoginDate'] != null
-          ? DateTime.parse(json['lastLoginDate'] as String)
+          ? DateTime.tryParse(json['lastLoginDate'] as String)
           : null,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.tryParse(json['updatedAt'] as String) ?? DateTime.now()
+          : (json['createdAt'] != null
+              ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
+              : DateTime.now()),
     );
   }
 

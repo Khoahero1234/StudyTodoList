@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/mock/mock_data.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/date_utils.dart';
@@ -38,6 +39,52 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
   bool get _isEditing => widget.taskId != null;
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.taskId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadTaskData();
+      });
+    }
+  }
+
+  Future<void> _loadTaskData() async {
+    try {
+      final existing = ref.read(taskListProvider).tasks;
+      TaskModel? task = existing.where((t) => t.id == widget.taskId).firstOrNull;
+
+      if (task == null) {
+        if (kUseMock) {
+          task = await ref.read(mockTaskRepositoryProvider).getTaskById(widget.taskId!);
+        } else {
+          task = await ref.read(taskRepositoryProvider)?.getTaskById(widget.taskId!);
+        }
+      }
+
+      if (task != null && mounted) {
+        setState(() {
+          _titleController.text = task!.title;
+          _descController.text = task.description ?? '';
+          _priority = task.priority;
+          _dueDate = task.dueDate;
+          if (task.dueTime != null && task.dueTime!.contains(':')) {
+            final parts = task.dueTime!.split(':');
+            _dueTime = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+          }
+          _categoryId = task.categoryId;
+          _tags = List.from(task.tags);
+          _subTasks = List.from(task.subTasks);
+          _isRecurring = task.isRecurring;
+          _recurringPattern = task.recurringPattern;
+          _estMinutesController.text = task.estimatedMinutes > 0 ? task.estimatedMinutes.toString() : '';
+        });
+      }
+    } catch (e) {
+      // Handle error
+    }
+  }
+
+  @override
   void dispose() {
     _titleController.dispose();
     _descController.dispose();
@@ -70,6 +117,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
         dueTime: dueTimeStr,
         categoryId: _categoryId,
         tags: _tags,
+        subTasks: _subTasks,
         estimatedMinutes:
             int.tryParse(_estMinutesController.text) ?? 0,
       );
@@ -171,6 +219,46 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
             _PrioritySelector(
               selected: _priority,
               onChanged: (p) => setState(() => _priority = p),
+            ),
+            const SizedBox(height: 20),
+
+            // Category selector (Fixed selection)
+            _SectionLabel(label: 'Category'),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                ChoiceChip(
+                  label: const Text('None'),
+                  selected: _categoryId == null,
+                  onSelected: (_) => setState(() => _categoryId = null),
+                  selectedColor: AppColors.primary.withValues(alpha: 0.25),
+                  backgroundColor: AppColors.cardDark,
+                  labelStyle: AppTextStyles.labelMedium.copyWith(
+                    color: _categoryId == null ? AppColors.primary : AppColors.textSecondary,
+                  ),
+                  side: BorderSide(
+                    color: _categoryId == null ? AppColors.primary : AppColors.borderDark,
+                  ),
+                ),
+                ...mockCategories.map((cat) {
+                  final isSelected = _categoryId == cat.id;
+                  return ChoiceChip(
+                    label: Text(cat.name),
+                    selected: isSelected,
+                    onSelected: (_) => setState(() => _categoryId = cat.id),
+                    selectedColor: AppColors.primary.withValues(alpha: 0.25),
+                    backgroundColor: AppColors.cardDark,
+                    labelStyle: AppTextStyles.labelMedium.copyWith(
+                      color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                    ),
+                    side: BorderSide(
+                      color: isSelected ? AppColors.primary : AppColors.borderDark,
+                    ),
+                  );
+                }),
+              ],
             ),
             const SizedBox(height: 20),
 
@@ -507,6 +595,35 @@ class _TagsInput extends StatelessWidget {
                   deleteIconColor: AppColors.textMuted,
                   visualDensity: VisualDensity.compact,
                 )),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          runSpacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text('Suggested:', style: AppTextStyles.caption.copyWith(color: AppColors.textMuted)),
+            ...['dart', 'flutter', 'reading', 'meeting', 'prm393', 'study', 'workout', 'project']
+                .where((t) => !tags.contains(t))
+                .map(
+              (sTag) => InkWell(
+                onTap: () => onAdd(sTag),
+                borderRadius: BorderRadius.circular(6),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardDark,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: AppColors.borderDark),
+                  ),
+                  child: Text(
+                    '+ #$sTag',
+                    style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 8),

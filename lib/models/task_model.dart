@@ -32,7 +32,7 @@ extension TaskPriorityExtension on TaskPriority {
   }
 
   static TaskPriority fromString(String value) {
-    switch (value) {
+    switch (value.toLowerCase()) {
       case 'high':
         return TaskPriority.high;
       case 'urgent':
@@ -60,8 +60,9 @@ extension TaskStatusExtension on TaskStatus {
   }
 
   static TaskStatus fromString(String value) {
-    switch (value) {
+    switch (value.toLowerCase()) {
       case 'in_progress':
+      case 'inprogress':
         return TaskStatus.inProgress;
       case 'completed':
         return TaskStatus.completed;
@@ -101,12 +102,12 @@ class TaskCategory {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'color': color,
-        'icon': icon,
-        'userId': userId,
-      };
+    'id': id,
+    'name': name,
+    'color': color,
+    'icon': icon,
+    'userId': userId,
+  };
 
   TaskCategory copyWith({
     String? id,
@@ -145,10 +146,10 @@ class SubTask {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'isCompleted': isCompleted,
-      };
+    'id': id,
+    'title': title,
+    'isCompleted': isCompleted,
+  };
 
   SubTask copyWith({String? id, String? title, bool? isCompleted}) {
     return SubTask(
@@ -209,8 +210,8 @@ class TaskModel {
   bool get isCompleted => status == TaskStatus.completed;
   bool get isOverdue =>
       dueDate != null &&
-      dueDate!.isBefore(DateTime.now()) &&
-      !isCompleted;
+          dueDate!.isBefore(DateTime.now()) &&
+          !isCompleted;
 
   double get subTaskProgress {
     if (subTasks.isEmpty) return 0;
@@ -237,12 +238,12 @@ class TaskModel {
           ? TaskCategory.fromJson(json['category'] as Map<String, dynamic>)
           : null,
       subTasks: (json['subTasks'] as List<dynamic>?)
-              ?.map((e) => SubTask.fromJson(e as Map<String, dynamic>))
-              .toList() ??
+          ?.map((e) => SubTask.fromJson(e as Map<String, dynamic>))
+          .toList() ??
           [],
       tags: (json['tags'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
+          ?.map((e) => e as String)
+          .toList() ??
           [],
       isRecurring: json['isRecurring'] as bool? ?? false,
       recurringPattern: json['recurringPattern'] as String?,
@@ -263,27 +264,27 @@ class TaskModel {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'userId': userId,
-        'title': title,
-        'description': description,
-        'priority': priority.value,
-        'status': status.value,
-        'dueDate': dueDate?.toIso8601String(),
-        'dueTime': dueTime,
-        'categoryId': categoryId,
-        'subTasks': subTasks.map((s) => s.toJson()).toList(),
-        'tags': tags,
-        'isRecurring': isRecurring,
-        'recurringPattern': recurringPattern,
-        'estimatedMinutes': estimatedMinutes,
-        'actualMinutes': actualMinutes,
-        'tokenReward': tokenReward,
-        'xpReward': xpReward,
-        'completedAt': completedAt?.toIso8601String(),
-        'createdAt': createdAt.toIso8601String(),
-        'updatedAt': updatedAt.toIso8601String(),
-      };
+    'id': id,
+    'userId': userId,
+    'title': title,
+    'description': description,
+    'priority': priority.value,
+    'status': status.value,
+    'dueDate': dueDate?.toIso8601String(),
+    'dueTime': dueTime,
+    'categoryId': categoryId,
+    'subTasks': subTasks.map((s) => s.toJson()).toList(),
+    'tags': tags,
+    'isRecurring': isRecurring,
+    'recurringPattern': recurringPattern,
+    'estimatedMinutes': estimatedMinutes,
+    'actualMinutes': actualMinutes,
+    'tokenReward': tokenReward,
+    'xpReward': xpReward,
+    'completedAt': completedAt?.toIso8601String(),
+    'createdAt': createdAt.toIso8601String(),
+    'updatedAt': updatedAt.toIso8601String(),
+  };
 
   TaskModel copyWith({
     String? id,
@@ -336,7 +337,7 @@ class TaskModel {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is TaskModel && runtimeType == other.runtimeType && id == other.id;
+          other is TaskModel && runtimeType == other.runtimeType && id == other.id;
 
   @override
   int get hashCode => id.hashCode;

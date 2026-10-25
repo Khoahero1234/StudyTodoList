@@ -363,6 +363,7 @@ class TaskFormNotifier extends StateNotifier<TaskFormState> {
     String? dueTime,
     String? categoryId,
     List<String>? tags,
+    List<SubTask>? subTasks,
     int? estimatedMinutes,
   }) async {
     state = const TaskFormState(isLoading: true);
@@ -378,6 +379,7 @@ class TaskFormNotifier extends StateNotifier<TaskFormState> {
         if (dueTime != null) data['dueTime'] = dueTime;
         if (categoryId != null) data['categoryId'] = categoryId;
         if (tags != null) data['tags'] = tags;
+        if (subTasks != null) data['subTasks'] = subTasks;
         if (estimatedMinutes != null) data['estimatedMinutes'] = estimatedMinutes;
         task = await _mockRepo!.updateTask(id, data);
       } else {
@@ -391,6 +393,7 @@ class TaskFormNotifier extends StateNotifier<TaskFormState> {
           dueTime: dueTime,
           categoryId: categoryId,
           tags: tags,
+          subTasks: subTasks,
           estimatedMinutes: estimatedMinutes,
         );
       }

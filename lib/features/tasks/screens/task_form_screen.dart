@@ -159,6 +159,7 @@ class _TaskFormScreenState extends ConsumerState<TaskFormScreen> {
               hint: 'Add details...',
               controller: _descController,
               maxLines: 3,
+              keyboardType: TextInputType.multiline,
               textInputAction: TextInputAction.newline,
               prefixIcon: const Icon(Icons.notes_rounded, size: 20),
             ),

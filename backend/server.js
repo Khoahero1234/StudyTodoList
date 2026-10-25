@@ -1,12 +1,21 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
 const taskRoutes = require('./routes/taskRoutes');
+const aiRoutes = require('./routes/aiRoutes');
+const pomodoroRoutes = require('./routes/pomodoroRoutes');
+const statsRoutes = require('./routes/statsRoutes');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+app.use('/api/v1/ai', aiRoutes);
+
+app.use('/api/v1/pomodoro', pomodoroRoutes);
 
 // Basic logging middleware
 app.use((req, res, next) => {
@@ -17,6 +26,7 @@ app.use((req, res, next) => {
 // Routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/tasks', taskRoutes);
+app.use('/api/v1/stats', statsRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

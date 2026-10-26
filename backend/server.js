@@ -10,15 +10,12 @@ const taskRoutes = require('./routes/taskRoutes');
 const friendRoutes = require('./routes/friendRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const studyRoomRoutes = require('./routes/studyRoomRoutes');
-// const authRoutes = require('./routes/authRoutes');
-// const taskRoutes = require('./routes/taskRoutes');
+
 const categoryRoutes = require('./routes/categoryRoutes');
 const goalRoutes = require('./routes/goalRoutes');
 const projectRoutes = require('./routes/projectRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 
-// const authRoutes = require('./routes/authRoutes');
-// const taskRoutes = require('./routes/taskRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const pomodoroRoutes = require('./routes/pomodoroRoutes');
 const statsRoutes = require('./routes/statsRoutes');

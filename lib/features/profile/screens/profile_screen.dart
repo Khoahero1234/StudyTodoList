@@ -349,13 +349,10 @@ class _MenuItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  final Widget? trailing;
-
   const _MenuItem({
     required this.icon,
     required this.label,
     required this.onTap,
-    this.trailing,
   });
 
   @override
@@ -364,8 +361,7 @@ class _MenuItem extends StatelessWidget {
       onTap: onTap,
       leading: Icon(icon, color: AppColors.textSecondary, size: 22),
       title: Text(label, style: AppTextStyles.bodyMedium),
-      trailing:
-          trailing ?? const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted, size: 20),
+      trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted, size: 20),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
     );
   }

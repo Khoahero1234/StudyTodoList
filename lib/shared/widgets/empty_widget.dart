@@ -11,7 +11,7 @@ class EmptyWidget extends StatelessWidget {
 
   const EmptyWidget({
     super.key,
-    this.icon = Icons.inbox_rounded,
+    required this.icon,
     required this.title,
     this.subtitle,
     this.action,

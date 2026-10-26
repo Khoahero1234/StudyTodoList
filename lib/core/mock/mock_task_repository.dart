@@ -131,11 +131,6 @@ class MockTaskRepository {
       dueTime: data['dueTime'] as String? ?? old.dueTime,
       categoryId: data['categoryId'] as String? ?? old.categoryId,
       tags: (data['tags'] as List<dynamic>?)?.cast<String>() ?? old.tags,
-      subTasks: data['subTasks'] != null
-          ? (data['subTasks'] as List<dynamic>)
-              .map((e) => e is SubTask ? e : SubTask.fromJson(e as Map<String, dynamic>))
-              .toList()
-          : old.subTasks,
       estimatedMinutes:
           data['estimatedMinutes'] as int? ?? old.estimatedMinutes,
       updatedAt: DateTime.now(),

@@ -1,6 +1,8 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
-<<<<<<< HEAD
+
 const http = require('http');
 const { Server } = require('socket.io');
 const authRoutes = require('./routes/authRoutes');
@@ -8,20 +10,25 @@ const taskRoutes = require('./routes/taskRoutes');
 const friendRoutes = require('./routes/friendRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const studyRoomRoutes = require('./routes/studyRoomRoutes');
-=======
-
-const authRoutes = require('./routes/authRoutes');
-const taskRoutes = require('./routes/taskRoutes');
+// const authRoutes = require('./routes/authRoutes');
+// const taskRoutes = require('./routes/taskRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const goalRoutes = require('./routes/goalRoutes');
 const projectRoutes = require('./routes/projectRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
->>>>>>> origin/main
+
+// const authRoutes = require('./routes/authRoutes');
+// const taskRoutes = require('./routes/taskRoutes');
+const aiRoutes = require('./routes/aiRoutes');
+const pomodoroRoutes = require('./routes/pomodoroRoutes');
+const statsRoutes = require('./routes/statsRoutes');
+
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
 
 // Create HTTP server and attach Socket.IO
 const server = http.createServer(app);
@@ -29,7 +36,7 @@ const io = new Server(server, {
   cors: { origin: '*', methods: ['GET', 'POST'] }
 });
 
-<<<<<<< HEAD
+
 // Basic Socket.IO event handling
 io.on('connection', (socket) => {
   console.log('🔌 Socket connected:', socket.id);
@@ -78,20 +85,26 @@ app.use('/api/v1/tasks', taskRoutes);
 app.use('/api/v1/friends', friendRoutes);
 app.use('/api/v1/chats', chatRoutes);
 app.use('/api/v1/studyrooms', studyRoomRoutes);
-=======
+// API V1 Routes
+app.use('/api/v1/categories', categoryRoutes);
+app.use('/api/v1/goals', goalRoutes);
+app.use('/api/v1/projects', projectRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/ai', aiRoutes);
+app.use('/api/v1/pomodoro', pomodoroRoutes);
+app.use('/api/v1/stats', statsRoutes);
 // Health check endpoint
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date() });
 });
 
-// API V1 Routes
-app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/tasks', taskRoutes);
-app.use('/api/v1/categories', categoryRoutes);
-app.use('/api/v1/goals', goalRoutes);
-app.use('/api/v1/projects', projectRoutes);
-app.use('/api/v1/notifications', notificationRoutes);
->>>>>>> origin/main
+
+
+// Basic logging middleware
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    next();
+});
 
 // Global Error Handler
 app.use((err, req, res, next) => {

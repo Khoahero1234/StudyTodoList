@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+<<<<<<< HEAD
 const http = require('http');
 const { Server } = require('socket.io');
 const authRoutes = require('./routes/authRoutes');
@@ -7,6 +8,15 @@ const taskRoutes = require('./routes/taskRoutes');
 const friendRoutes = require('./routes/friendRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const studyRoomRoutes = require('./routes/studyRoomRoutes');
+=======
+
+const authRoutes = require('./routes/authRoutes');
+const taskRoutes = require('./routes/taskRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
+const goalRoutes = require('./routes/goalRoutes');
+const projectRoutes = require('./routes/projectRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+>>>>>>> origin/main
 
 const app = express();
 
@@ -19,6 +29,7 @@ const io = new Server(server, {
   cors: { origin: '*', methods: ['GET', 'POST'] }
 });
 
+<<<<<<< HEAD
 // Basic Socket.IO event handling
 io.on('connection', (socket) => {
   console.log('🔌 Socket connected:', socket.id);
@@ -67,6 +78,20 @@ app.use('/api/v1/tasks', taskRoutes);
 app.use('/api/v1/friends', friendRoutes);
 app.use('/api/v1/chats', chatRoutes);
 app.use('/api/v1/studyrooms', studyRoomRoutes);
+=======
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date() });
+});
+
+// API V1 Routes
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/tasks', taskRoutes);
+app.use('/api/v1/categories', categoryRoutes);
+app.use('/api/v1/goals', goalRoutes);
+app.use('/api/v1/projects', projectRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
+>>>>>>> origin/main
 
 // Global Error Handler
 app.use((err, req, res, next) => {

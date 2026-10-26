@@ -76,7 +76,11 @@ class AuthRemoteDataSource {
   Future<UserModel> getMe() async {
     try {
       final response = await _dioClient.get(ApiEndpoints.me);
-      return UserModel.fromJson(response.data as Map<String, dynamic>);
+      final data = response.data as Map<String, dynamic>;
+      if (data.containsKey('user') && data['user'] is Map<String, dynamic>) {
+        return UserModel.fromJson(data['user'] as Map<String, dynamic>);
+      }
+      return UserModel.fromJson(data);
     } on DioException catch (e) {
       throw NetworkException.fromDioError(e);
     }

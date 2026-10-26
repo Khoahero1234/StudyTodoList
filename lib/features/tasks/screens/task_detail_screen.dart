@@ -90,36 +90,6 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     }
   }
 
-  Future<void> _toggleSubTask(String subtaskId) async {
-    if (_task == null) return;
-
-    final updatedSubTasks = _task!.subTasks.map((s) {
-      if (s.id == subtaskId) {
-        return s.copyWith(isCompleted: !s.isCompleted);
-      }
-      return s;
-    }).toList();
-
-    try {
-      TaskModel updated;
-      if (kUseMock) {
-        updated = await ref
-            .read(mockTaskRepositoryProvider)
-            .updateTask(widget.taskId, {'subTasks': updatedSubTasks});
-      } else {
-        updated = await ref
-            .read(taskRepositoryProvider)!
-            .updateTask(id: widget.taskId, subTasks: updatedSubTasks);
-      }
-      setState(() => _task = updated);
-      ref.read(taskListProvider.notifier).updateTask(updated);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update subtask: $e')),
-      );
-    }
-  }
-
   Future<void> _deleteTask() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -335,37 +305,33 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                         ),
                         const SizedBox(height: 12),
                         ...task.subTasks.map(
-                          (s) => GestureDetector(
-                            onTap: () => _toggleSubTask(s.id),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              color: Colors.transparent,
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    s.isCompleted
-                                        ? Icons.check_circle_rounded
-                                        : Icons.circle_outlined,
-                                    color: s.isCompleted
-                                        ? AppColors.success
-                                        : AppColors.textMuted,
-                                    size: 18,
+                          (s) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  s.isCompleted
+                                      ? Icons.check_circle_rounded
+                                      : Icons.circle_outlined,
+                                  color: s.isCompleted
+                                      ? AppColors.success
+                                      : AppColors.textMuted,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    s.title,
+                                    style: s.isCompleted
+                                        ? AppTextStyles.bodySmall.copyWith(
+                                            color: AppColors.textMuted,
+                                            decoration:
+                                                TextDecoration.lineThrough,
+                                          )
+                                        : AppTextStyles.bodySmall,
                                   ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      s.title,
-                                      style: s.isCompleted
-                                          ? AppTextStyles.bodySmall.copyWith(
-                                              color: AppColors.textMuted,
-                                              decoration:
-                                                  TextDecoration.lineThrough,
-                                            )
-                                          : AppTextStyles.bodySmall,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         ),

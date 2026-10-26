@@ -7,6 +7,10 @@ const taskRoutes = require('./routes/taskRoutes');
 const walletRoutes = require('./routes/walletRoutes');
 const shopRoutes = require('./routes/shopRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const rewardRoutes = require('./routes/rewardRoutes');
+const { initStreakCron } = require('./services/streakCron');
+
+initStreakCron();
 
 const app = express();
 
@@ -27,6 +31,8 @@ app.use('/api/v1/shop', shopRoutes);
 app.use('/api/shop', shopRoutes);
 app.use('/api/v1/orders', orderRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/v1/rewards', rewardRoutes);
+app.use('/api/rewards', rewardRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

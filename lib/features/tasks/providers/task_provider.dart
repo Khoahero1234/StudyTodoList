@@ -2,6 +2,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../features/auth/providers/auth_provider.dart';
+import '../../../features/wallet/providers/wallet_provider.dart';
 import '../../../models/task_model.dart';
 import '../data/task_remote_datasource.dart';
 import '../data/task_repository.dart';
@@ -105,8 +106,9 @@ class TaskListState {
 
 class TaskListNotifier extends StateNotifier<TaskListState> {
   final TaskRepository _repository;
+  final Ref _ref;
 
-  TaskListNotifier(this._repository) : super(const TaskListState());
+  TaskListNotifier(this._repository, this._ref) : super(const TaskListState());
 
   Future<void> loadTasks({
     TaskStatus? status,
@@ -134,7 +136,7 @@ class TaskListNotifier extends StateNotifier<TaskListState> {
         hasMore: result.hasMore,
       );
     } catch (e) {
-      // Mock data for Phase 1 UI display
+      // Mock fallback
       final mockTasks = [
         TaskModel(
           id: '1',
@@ -197,9 +199,51 @@ class TaskListNotifier extends StateNotifier<TaskListState> {
             .map((t) => t.id == id ? updated : t)
             .toList(),
       );
+      // Trigger automatic refresh on wallet and auth user info
+      _ref.read(walletProvider.notifier).refreshWallet();
+      _ref.read(authProvider.notifier).refreshUser();
     } catch (e) {
-      // Ignore API failure for mock UI
+      // Handle error
     }
+  }
+
+  Future<void> toggleTaskCompletion(String id) async {
+    final task = state.tasks.firstWhere(
+      (t) => t.id == id,
+      orElse: () => TaskModel(
+        id: id,
+        userId: '',
+        title: '',
+        priority: TaskPriority.medium,
+        status: TaskStatus.pending,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
+    );
+
+    final isCompleting = !task.isCompleted;
+
+    // Optimistically update UI
+    state = state.copyWith(
+      tasks: state.tasks.map((t) {
+        if (t.id != id) return t;
+        return t.copyWith(
+          status: isCompleting ? TaskStatus.completed : TaskStatus.pending,
+          completedAt: isCompleting ? DateTime.now() : null,
+        );
+      }).toList(),
+    );
+
+    try {
+      if (isCompleting) {
+        await _repository.completeTask(id);
+      } else {
+        await _repository.updateTask(id: id, status: TaskStatus.pending);
+      }
+      // Refresh wallet & auth user info so token balance updates immediately!
+      _ref.read(walletProvider.notifier).refreshWallet();
+      _ref.read(authProvider.notifier).refreshUser();
+    } catch (_) {}
   }
 
   Future<void> deleteTask(String id) async {
@@ -209,7 +253,7 @@ class TaskListNotifier extends StateNotifier<TaskListState> {
         tasks: state.tasks.where((t) => t.id != id).toList(),
       );
     } catch (e) {
-       state = state.copyWith(
+      state = state.copyWith(
         tasks: state.tasks.where((t) => t.id != id).toList(),
       );
     }
@@ -224,25 +268,12 @@ class TaskListNotifier extends StateNotifier<TaskListState> {
       tasks: state.tasks.map((t) => t.id == updated.id ? updated : t).toList(),
     );
   }
-
-  void toggleTaskCompletion(String id) {
-    state = state.copyWith(
-      tasks: state.tasks.map((t) {
-        if (t.id != id) return t;
-        final newStatus = t.isCompleted ? TaskStatus.pending : TaskStatus.completed;
-        return t.copyWith(
-          status: newStatus,
-          completedAt: newStatus == TaskStatus.completed ? DateTime.now() : null,
-        );
-      }).toList(),
-    );
-  }
 }
 
 final taskListProvider =
     StateNotifierProvider<TaskListNotifier, TaskListState>((ref) {
   final repository = ref.watch(taskRepositoryProvider);
-  return TaskListNotifier(repository);
+  return TaskListNotifier(repository, ref);
 });
 
 final todayTasksProvider = Provider<List<TaskModel>>((ref) {

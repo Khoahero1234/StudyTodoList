@@ -21,6 +21,7 @@ import '../../features/wallet/screens/wallet_screen.dart';
 import '../../features/premium/screens/premium_screen.dart';
 import '../../features/inventory/screens/inventory_screen.dart';
 import '../../features/study_room/screens/study_room_screen.dart';
+import '../../features/rewards/screens/reward_screen.dart';
 import '../../shared/widgets/main_scaffold.dart';
 
 // Route names
@@ -46,6 +47,7 @@ class AppRoutes {
   static const inventory = '/inventory';
   static const studyRooms = '/study-rooms';
   static const studyRoomDetail = '/study-rooms/:id';
+  static const rewards = '/rewards';
 }
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -190,6 +192,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.studyRooms,
         builder: (context, state) => const StudyRoomScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.rewards,
+        builder: (context, state) => const RewardScreen(),
       ),
     ],
   );

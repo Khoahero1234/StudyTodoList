@@ -178,9 +178,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> refreshUser() async {
     try {
-      final user = await _repository.getMe();
+      final user = await _repository!.getMe();
       state = AuthState.authenticated(user);
     } catch (_) {}
+  }
+
+  void addTokens(int amount) {
+    if (state.user != null) {
+      final updatedUser = state.user!.copyWith(
+        tokenBalance: state.user!.tokenBalance + amount,
+      );
+      state = AuthState.authenticated(updatedUser);
+    }
   }
 
   void clearError() {

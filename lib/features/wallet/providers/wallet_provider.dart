@@ -1,6 +1,7 @@
 // lib/features/wallet/providers/wallet_provider.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/mock/mock_data.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../features/auth/providers/auth_provider.dart';
 import '../../../models/token_transaction_model.dart';
@@ -58,14 +59,37 @@ class WalletState {
 
 class WalletNotifier extends StateNotifier<WalletState> {
   final WalletRemoteDataSource _remoteDataSource;
+  final Ref _ref;
 
-  WalletNotifier(this._remoteDataSource) : super(const WalletState()) {
+  WalletNotifier(this._remoteDataSource, this._ref) : super(const WalletState()) {
     loadWalletData();
   }
 
   Future<void> loadWalletData() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
+      if (kUseMock) {
+        await Future.delayed(const Duration(milliseconds: 200));
+        final userState = _ref.read(authProvider);
+        final balance = userState.user?.tokenBalance ?? 250;
+        state = state.copyWith(
+          balance: balance,
+          transactions: [
+            TokenTransactionModel(
+              id: 'tx-001',
+              walletId: 'wallet-001',
+              type: 'REWARD',
+              amount: balance,
+              description: 'Token tích lũy từ nhiệm vụ & điểm danh',
+              createdAt: DateTime.now(),
+            ),
+          ],
+          isLoading: false,
+          hasMore: false,
+        );
+        return;
+      }
+
       final walletData = await _remoteDataSource.getWalletInfo();
       final balance = walletData['balance'] as int? ?? 0;
       
@@ -88,15 +112,34 @@ class WalletNotifier extends StateNotifier<WalletState> {
         hasMore: currentPage < totalPages,
       );
     } catch (e) {
+      final userState = _ref.read(authProvider);
+      final balance = userState.user?.tokenBalance ?? 250;
       state = state.copyWith(
+        balance: balance,
+        transactions: [],
         isLoading: false,
-        errorMessage: e.toString(),
       );
     }
   }
 
   Future<void> refreshWallet() async {
     await loadWalletData();
+  }
+
+  void addRewardTransaction(int amount, String taskTitle) {
+    final newBalance = state.balance + amount;
+    final newTx = TokenTransactionModel(
+      id: 'tx-${DateTime.now().millisecondsSinceEpoch}',
+      walletId: 'wallet-001',
+      type: 'REWARD',
+      amount: amount,
+      description: 'Hoàn thành nhiệm vụ: $taskTitle',
+      createdAt: DateTime.now(),
+    );
+    state = state.copyWith(
+      balance: newBalance,
+      transactions: [newTx, ...state.transactions],
+    );
   }
 
   Future<void> loadMoreTransactions() async {
@@ -132,5 +175,5 @@ class WalletNotifier extends StateNotifier<WalletState> {
 
 final walletProvider = StateNotifierProvider<WalletNotifier, WalletState>((ref) {
   final remoteDataSource = ref.watch(walletRemoteDataSourceProvider);
-  return WalletNotifier(remoteDataSource);
+  return WalletNotifier(remoteDataSource, ref);
 });

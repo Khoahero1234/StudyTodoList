@@ -104,18 +104,6 @@ async function main() {
                 tags: ['reading', 'cleancode'],
                 categoryId: category.id,
                 userId: user.id
-            },
-            {
-                title: 'Chạy bộ 3km buổi sáng',
-                description: 'Tăng cường sức khỏe và giữ phong độ',
-                priority: 'low',
-                status: 'pending',
-                dueDate: new Date(),
-                estimatedMinutes: 30,
-                tokenReward: 20,
-                xpReward: 25,
-                tags: ['fitness', 'health'],
-                userId: user.id
             }
         ];
 

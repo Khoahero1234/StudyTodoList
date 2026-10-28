@@ -11,10 +11,10 @@ const friendRoutes = require('./routes/friendRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const studyRoomRoutes = require('./routes/studyRoomRoutes');
 
-const categoryRoutes = require('./routes/categoryRoutes');
-const goalRoutes = require('./routes/goalRoutes');
-const projectRoutes = require('./routes/projectRoutes');
-const notificationRoutes = require('./routes/notificationRoutes');
+// const categoryRoutes = require('./routes/categoryRoutes');
+// const goalRoutes = require('./routes/goalRoutes');
+// const projectRoutes = require('./routes/projectRoutes');
+// const notificationRoutes = require('./routes/notificationRoutes');
 
 const aiRoutes = require('./routes/aiRoutes');
 const pomodoroRoutes = require('./routes/pomodoroRoutes');
@@ -83,24 +83,24 @@ app.use('/api/v1/friends', friendRoutes);
 app.use('/api/v1/chats', chatRoutes);
 app.use('/api/v1/studyrooms', studyRoomRoutes);
 // API V1 Routes
-app.use('/api/v1/categories', categoryRoutes);
-app.use('/api/v1/goals', goalRoutes);
-app.use('/api/v1/projects', projectRoutes);
-app.use('/api/v1/notifications', notificationRoutes);
+// app.use('/api/v1/categories', categoryRoutes);
+// app.use('/api/v1/goals', goalRoutes);
+// app.use('/api/v1/projects', projectRoutes);
+// app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/ai', aiRoutes);
 app.use('/api/v1/pomodoro', pomodoroRoutes);
 app.use('/api/v1/stats', statsRoutes);
 // Health check endpoint
 app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date() });
+  res.json({ status: 'ok', timestamp: new Date() });
 });
 
 
 
 // Basic logging middleware
 app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-    next();
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
 });
 
 // Global Error Handler

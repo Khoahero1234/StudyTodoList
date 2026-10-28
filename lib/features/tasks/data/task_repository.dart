@@ -68,7 +68,6 @@ class TaskRepository {
     String? categoryId,
     List<String>? tags,
     int? estimatedMinutes,
-    List<SubTask>? subTasks,
   }) {
     final Map<String, dynamic> data = {};
     if (title != null) data['title'] = title;
@@ -80,9 +79,6 @@ class TaskRepository {
     if (categoryId != null) data['categoryId'] = categoryId;
     if (tags != null) data['tags'] = tags;
     if (estimatedMinutes != null) data['estimatedMinutes'] = estimatedMinutes;
-    if (subTasks != null) {
-      data['subTasks'] = subTasks.map((s) => s.toJson()).toList();
-    }
 
     return _remoteDataSource.updateTask(id, data);
   }

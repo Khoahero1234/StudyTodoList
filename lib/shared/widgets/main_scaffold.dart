@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+// Import widget bong bóng chat AI mà chúng ta sẽ tạo
+import '../../features/ai/presentation/widgets/ai_floating_bubble.dart';
 
 class MainScaffold extends StatelessWidget {
   final Widget child;
@@ -14,16 +16,15 @@ class MainScaffold extends StatelessWidget {
     if (location.startsWith(AppRoutes.home) &&
         !location.startsWith(AppRoutes.tasks) &&
         !location.startsWith(AppRoutes.calendar) &&
-        !location.startsWith(AppRoutes.ai) &&
         !location.startsWith(AppRoutes.shop) &&
         !location.startsWith(AppRoutes.profile)) {
       return 0;
     }
     if (location.startsWith(AppRoutes.tasks)) return 1;
     if (location.startsWith(AppRoutes.calendar)) return 2;
-    if (location.startsWith(AppRoutes.ai)) return 3;
-    if (location.startsWith(AppRoutes.shop)) return 4;
-    if (location.startsWith(AppRoutes.profile)) return 5;
+    // Đã bỏ AI khỏi index thanh điều hướng
+    if (location.startsWith(AppRoutes.shop)) return 3;
+    if (location.startsWith(AppRoutes.profile)) return 4;
     return 0;
   }
 
@@ -33,7 +34,15 @@ class MainScaffold extends StatelessWidget {
     final currentIndex = _locationToIndex(location);
 
     return Scaffold(
-      body: child,
+      body: Stack(
+        children: [
+          // Nội dung trang chính hiện tại (Home, Tasks, Calendar, Shop, Profile)
+          child,
+
+          // Bong bóng chat AI nổi luôn xuất hiện ở góc dưới bên phải màn hình
+          const AiFloatingBubble(),
+        ],
+      ),
       bottomNavigationBar: _BottomNav(
         currentIndex: currentIndex,
         onTap: (index) {
@@ -48,12 +57,9 @@ class MainScaffold extends StatelessWidget {
               context.go(AppRoutes.calendar);
               break;
             case 3:
-              context.go(AppRoutes.ai);
-              break;
-            case 4:
               context.go(AppRoutes.shop);
               break;
-            case 5:
+            case 4:
               context.go(AppRoutes.profile);
               break;
           }
@@ -79,7 +85,7 @@ class _BottomNav extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -109,24 +115,18 @@ class _BottomNav extends StatelessWidget {
                 isActive: currentIndex == 2,
                 onTap: () => onTap(2),
               ),
-              _NavItem(
-                icon: Icons.auto_awesome_rounded,
-                label: 'AI',
-                isActive: currentIndex == 3,
-                onTap: () => onTap(3),
-                isHighlight: true,
-              ),
+              // Đã loại bỏ nút AI ở thanh navigation dưới
               _NavItem(
                 icon: Icons.storefront_rounded,
                 label: 'Shop',
-                isActive: currentIndex == 4,
-                onTap: () => onTap(4),
+                isActive: currentIndex == 3,
+                onTap: () => onTap(3),
               ),
               _NavItem(
                 icon: Icons.person_rounded,
                 label: 'Profile',
-                isActive: currentIndex == 5,
-                onTap: () => onTap(5),
+                isActive: currentIndex == 4,
+                onTap: () => onTap(4),
               ),
             ],
           ),
@@ -140,7 +140,6 @@ class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool isActive;
-  final bool isHighlight;
   final VoidCallback onTap;
 
   const _NavItem({
@@ -148,16 +147,11 @@ class _NavItem extends StatelessWidget {
     required this.label,
     required this.isActive,
     required this.onTap,
-    this.isHighlight = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = isActive
-        ? AppColors.primary
-        : isHighlight
-            ? AppColors.secondary
-            : AppColors.textMuted;
+    final color = isActive ? AppColors.primary : AppColors.textMuted;
 
     return GestureDetector(
       onTap: onTap,
@@ -167,7 +161,7 @@ class _NavItem extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isActive
-              ? AppColors.primary.withOpacity(0.15)
+              ? AppColors.primary.withValues(alpha: .15)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
@@ -185,8 +179,7 @@ class _NavItem extends StatelessWidget {
               style: AppTextStyles.labelSmall.copyWith(
                 color: color,
                 fontSize: 10,
-                fontWeight:
-                    isActive ? FontWeight.w600 : FontWeight.w400,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
               ),
             ),
           ],

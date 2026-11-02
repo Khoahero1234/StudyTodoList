@@ -5,8 +5,13 @@ const cors = require('cors');
 
 const http = require('http');
 const { Server } = require('socket.io');
+
 const authRoutes = require('./routes/authRoutes');
 const taskRoutes = require('./routes/taskRoutes');
+const walletRoutes = require('./routes/walletRoutes');
+const shopRoutes = require('./routes/shopRoutes');
+const orderRoutes = require('./routes/orderRoutes');
+const rewardRoutes = require('./routes/rewardRoutes');
 const friendRoutes = require('./routes/friendRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const studyRoomRoutes = require('./routes/studyRoomRoutes');
@@ -19,7 +24,11 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const pomodoroRoutes = require('./routes/pomodoroRoutes');
 const statsRoutes = require('./routes/statsRoutes');
+const missionRoutes = require('./routes/missionRoutes');
 
+const { initStreakCron } = require('./services/streakCron');
+
+initStreakCron();
 
 const app = express();
 
@@ -31,13 +40,17 @@ app.use(cors({
 
 app.use(express.json());
 
+// Basic logging middleware
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    next();
+});
 
 // Create HTTP server and attach Socket.IO
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: '*', methods: ['GET', 'POST'] }
 });
-
 
 // Basic Socket.IO event handling
 io.on('connection', (socket) => {
@@ -74,39 +87,32 @@ io.on('connection', (socket) => {
   });
   socket.on('studyRoom:message', async (payload) => {
     const { roomId, senderId, content } = payload;
-    // For now just broadcast; persistence can be added later
     io.to(`studyRoom_${roomId}`).emit('studyRoom:message', payload);
   });
 });
 
-// Use the same server instance for listening at the end of file
-
-// Routes
-app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/tasks', taskRoutes);
-app.use('/api/v1/friends', friendRoutes);
-app.use('/api/v1/chats', chatRoutes);
-app.use('/api/v1/studyrooms', studyRoomRoutes);
-// API V1 Routes
-app.use('/api/v1/categories', categoryRoutes);
-app.use('/api/v1/goals', goalRoutes);
-app.use('/api/v1/projects', projectRoutes);
-app.use('/api/v1/notifications', notificationRoutes);
-app.use('/api/v1/ai', aiRoutes);
-app.use('/api/v1/pomodoro', pomodoroRoutes);
-app.use('/api/v1/stats', statsRoutes);
 // Health check endpoint
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date() });
 });
 
-
-
-// Basic logging middleware
-app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-    next();
-});
+// API Routes
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/tasks', taskRoutes);
+app.use('/api/v1/friends', friendRoutes);
+app.use('/api/v1/chats', chatRoutes);
+app.use('/api/v1/studyrooms', studyRoomRoutes);
+app.use('/api/v1/ai', aiRoutes);
+app.use('/api/v1/pomodoro', pomodoroRoutes);
+app.use('/api/v1/stats', statsRoutes);
+app.use('/api/v1/missions', missionRoutes);
+app.use('/api/v1/wallet', walletRoutes);
+app.use('/api/v1/shop', shopRoutes);
+app.use('/api/shop', shopRoutes);
+app.use('/api/v1/orders', orderRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/v1/rewards', rewardRoutes);
+app.use('/api/rewards', rewardRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

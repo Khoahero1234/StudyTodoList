@@ -5,7 +5,7 @@ import '../../models/user_model.dart';
 
 /// Flag để bật/tắt chế độ mock.
 /// Đặt thành false khi backend đã sẵn sàng.
-const bool kUseMock = true;
+const bool kUseMock = false;
 
 // ─── Mock User ───────────────────────────────────────────────────────────────
 

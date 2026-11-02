@@ -15,6 +15,12 @@ const rewardRoutes = require('./routes/rewardRoutes');
 const friendRoutes = require('./routes/friendRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const studyRoomRoutes = require('./routes/studyRoomRoutes');
+
+const categoryRoutes = require('./routes/categoryRoutes');
+const goalRoutes = require('./routes/goalRoutes');
+const projectRoutes = require('./routes/projectRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+
 const aiRoutes = require('./routes/aiRoutes');
 const pomodoroRoutes = require('./routes/pomodoroRoutes');
 const statsRoutes = require('./routes/statsRoutes');
@@ -26,7 +32,12 @@ initStreakCron();
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
 app.use(express.json());
 
 // Basic logging middleware
@@ -111,5 +122,5 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on http://localhostS:${PORT}`);
 });

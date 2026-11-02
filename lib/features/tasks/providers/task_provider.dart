@@ -424,23 +424,26 @@ class TaskFormNotifier extends StateNotifier<TaskFormState> {
     DateTime? dueDate,
     String? dueTime,
     String? categoryId,
-    List<String> tags = const [],
-    int estimatedMinutes = 0,
+    List<String>? tags,
+    List<SubTask>? subTasks,
+    int? estimatedMinutes,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       TaskModel task;
       if (kUseMock) {
-        task = await _mockRepo!.updateTask(id, {
-          'title': title,
-          'description': description,
-          'priority': priority.name.toUpperCase(),
-          'dueDate': dueDate?.toIso8601String(),
-          'dueTime': dueTime,
-          'categoryId': categoryId,
-          'tags': tags,
-          'estimatedMinutes': estimatedMinutes,
-        });
+        final data = <String, dynamic>{};
+        if (title != null) data['title'] = title;
+        if (description != null) data['description'] = description;
+        if (priority != null) data['priority'] = priority.value;
+        if (status != null) data['status'] = status.value;
+        if (dueDate != null) data['dueDate'] = dueDate.toIso8601String();
+        if (dueTime != null) data['dueTime'] = dueTime;
+        if (categoryId != null) data['categoryId'] = categoryId;
+        if (tags != null) data['tags'] = tags;
+        if (subTasks != null) data['subTasks'] = subTasks;
+        if (estimatedMinutes != null) data['estimatedMinutes'] = estimatedMinutes;
+        task = await _mockRepo!.updateTask(id, data);
       } else {
         task = await _repository!.updateTask(
           id: id,
@@ -451,6 +454,7 @@ class TaskFormNotifier extends StateNotifier<TaskFormState> {
           dueTime: dueTime,
           categoryId: categoryId,
           tags: tags,
+          subTasks: subTasks,
           estimatedMinutes: estimatedMinutes,
         );
       }

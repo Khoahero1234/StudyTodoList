@@ -67,9 +67,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       final status = ref.read(authProvider).status;
       final location = state.uri.toString();
 
-      // Still initializing
-      if (status == AuthStatus.initial || status == AuthStatus.loading) {
+      // Only the initial state belongs on the splash screen. Loading can also
+      // happen during login, registration, or logout, so keep the current route.
+      if (status == AuthStatus.initial) {
         if (location != AppRoutes.splash) return AppRoutes.splash;
+        return null;
+      }
+
+      if (status == AuthStatus.loading) {
         return null;
       }
 

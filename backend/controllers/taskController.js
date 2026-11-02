@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+﻿const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 exports.getTasks = async (req, res) => {
@@ -64,10 +64,10 @@ exports.createTask = async (req, res) => {
                 userId: req.user.id,
                 title,
                 description,
-                priority: priority || 'medium',
-                status: 'pending',
+                priority: priority ? priority.toUpperCase() : 'MEDIUM',
+                status: 'PENDING',
                 dueDate: dueDate ? new Date(dueDate) : null,
-                dueTime,
+                startTime: dueTime || null,
                 categoryId,
                 tags: tags || [],
                 estimatedMinutes: estimatedMinutes || 0,
@@ -92,12 +92,27 @@ exports.updateTask = async (req, res) => {
         
         if (!existingTask) return res.status(404).json({ success: false, message: 'Task not found' });
 
-        const dataToUpdate = { ...req.body };
-        if (dataToUpdate.dueDate) dataToUpdate.dueDate = new Date(dataToUpdate.dueDate);
-        
-        if (dataToUpdate.status === 'completed' && existingTask.status !== 'completed') {
+        // Chi lay cac field hop le cua Prisma Task model (tranh unknown field error)
+        const { title, description, priority, status, dueDate, dueTime, categoryId, projectId, tags, estimatedMinutes, isRecurring, recurringPattern } = req.body;
+
+        const dataToUpdate = {};
+        if (title !== undefined) dataToUpdate.title = title;
+        if (description !== undefined) dataToUpdate.description = description;
+        if (priority !== undefined) dataToUpdate.priority = priority.toUpperCase();
+        if (status !== undefined) dataToUpdate.status = status.toUpperCase();
+        if (dueDate !== undefined) dataToUpdate.dueDate = dueDate ? new Date(dueDate) : null;
+        if (dueTime !== undefined) dataToUpdate.startTime = dueTime || null; // Flutter gui "dueTime", Prisma luu "startTime"
+        if (categoryId !== undefined) dataToUpdate.categoryId = categoryId || null;
+        if (projectId !== undefined) dataToUpdate.projectId = projectId || null;
+        if (tags !== undefined) dataToUpdate.tags = tags;
+        if (estimatedMinutes !== undefined) dataToUpdate.estimatedMinutes = estimatedMinutes;
+        if (isRecurring !== undefined) dataToUpdate.isRecurring = isRecurring;
+        if (recurringPattern !== undefined) dataToUpdate.recurringPattern = recurringPattern || null;
+
+        // Xu ly completedAt khi doi status
+        if (status === 'COMPLETED' && existingTask.status !== 'COMPLETED') {
             dataToUpdate.completedAt = new Date();
-        } else if (dataToUpdate.status && dataToUpdate.status !== 'completed') {
+        } else if (status && status !== 'COMPLETED') {
             dataToUpdate.completedAt = null;
         }
 

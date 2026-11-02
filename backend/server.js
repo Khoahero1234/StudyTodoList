@@ -10,15 +10,12 @@ const taskRoutes = require('./routes/taskRoutes');
 const friendRoutes = require('./routes/friendRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const studyRoomRoutes = require('./routes/studyRoomRoutes');
-// const authRoutes = require('./routes/authRoutes');
-// const taskRoutes = require('./routes/taskRoutes');
+
 const categoryRoutes = require('./routes/categoryRoutes');
 const goalRoutes = require('./routes/goalRoutes');
 const projectRoutes = require('./routes/projectRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 
-// const authRoutes = require('./routes/authRoutes');
-// const taskRoutes = require('./routes/taskRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const pomodoroRoutes = require('./routes/pomodoroRoutes');
 const statsRoutes = require('./routes/statsRoutes');
@@ -26,7 +23,12 @@ const statsRoutes = require('./routes/statsRoutes');
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
 app.use(express.json());
 
 
@@ -114,5 +116,5 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on http://localhostS:${PORT}`);
 });

@@ -7,8 +7,9 @@ class AppConstants {
   static const String appVersion = '1.0.0';
 
   // API
-  static const String baseUrl = 'http://10.0.2.2:3000/api/v1'; // Android emulator
-  // static const String baseUrl = 'http://localhost:3000/api/v1'; // iOS simulator
+  // Physical Android device over USB: forward port 3000 with `adb reverse`.
+  // static const String baseUrl = 'http://192.168.56.1:3000/api/v1';
+  static const String baseUrl = 'http://localhost:3000/api/v1'; // iOS simulator
 
   // Timeouts
   static const Duration connectTimeout = Duration(seconds: 10);

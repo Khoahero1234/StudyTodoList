@@ -21,9 +21,6 @@ class TaskListScreen extends ConsumerStatefulWidget {
   ConsumerState<TaskListScreen> createState() => _TaskListScreenState();
 }
 
-class _TaskListScreenState extends ConsumerState<TaskListScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  bool _isSearching = false;
 class _TaskListScreenState extends ConsumerState<TaskListScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
@@ -34,8 +31,6 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      ref.read(taskListProvider.notifier).loadTasks();
     _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchInitialTasks();
@@ -55,11 +50,11 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
         _scrollController.position.maxScrollExtent - 200) {
       final filter = ref.read(taskFilterProvider);
       ref.read(taskListProvider.notifier).loadMore(
-        status: filter.status,
-        priority: filter.priority,
-        categoryId: filter.categoryId,
-        search: filter.search,
-      );
+            status: filter.status,
+            priority: filter.priority,
+            categoryId: filter.categoryId,
+            search: filter.search,
+          );
     }
   }
 
@@ -67,13 +62,13 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
     final filter = ref.read(taskFilterProvider);
     _searchController.text = filter.search;
     ref.read(taskListProvider.notifier).loadTasks(
-      status: filter.status,
-      priority: filter.priority,
-      categoryId: filter.categoryId,
-      search: filter.search,
-      dueDateFrom: filter.dueDateFrom,
-      dueDateTo: filter.dueDateTo,
-    );
+          status: filter.status,
+          priority: filter.priority,
+          categoryId: filter.categoryId,
+          search: filter.search,
+          dueDateFrom: filter.dueDateFrom,
+          dueDateTo: filter.dueDateTo,
+        );
   }
 
   void _onSearchChanged(String query) {
@@ -83,13 +78,13 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
       final updated = current.copyWith(search: query.trim());
       ref.read(taskFilterProvider.notifier).state = updated;
       ref.read(taskListProvider.notifier).loadTasks(
-        status: updated.status,
-        priority: updated.priority,
-        categoryId: updated.categoryId,
-        search: updated.search,
-        dueDateFrom: updated.dueDateFrom,
-        dueDateTo: updated.dueDateTo,
-      );
+            status: updated.status,
+            priority: updated.priority,
+            categoryId: updated.categoryId,
+            search: updated.search,
+            dueDateFrom: updated.dueDateFrom,
+            dueDateTo: updated.dueDateTo,
+          );
     });
   }
 
@@ -99,13 +94,13 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
       _searchController.text = newFilter.search;
     }
     ref.read(taskListProvider.notifier).loadTasks(
-      status: newFilter.status,
-      priority: newFilter.priority,
-      categoryId: newFilter.categoryId,
-      search: newFilter.search,
-      dueDateFrom: newFilter.dueDateFrom,
-      dueDateTo: newFilter.dueDateTo,
-    );
+          status: newFilter.status,
+          priority: newFilter.priority,
+          categoryId: newFilter.categoryId,
+          search: newFilter.search,
+          dueDateFrom: newFilter.dueDateFrom,
+          dueDateTo: newFilter.dueDateTo,
+        );
   }
 
   void _showFilterBottomSheet() {
@@ -160,11 +155,11 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
                         selectedColor: AppColors.primary.withValues(alpha: 0.2),
                       ),
                       ...TaskPriority.values.map(
-                            (p) => FilterChip(
+                        (p) => FilterChip(
                           label: Text(p.label),
                           selected: tempPriority == p,
                           onSelected: (sel) => setModalState(
-                                  () => tempPriority = sel ? p : null),
+                              () => tempPriority = sel ? p : null),
                           selectedColor: AppColors.primary.withValues(alpha: 0.2),
                         ),
                       ),
@@ -187,7 +182,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
                         selectedColor: AppColors.primary.withValues(alpha: 0.2),
                       ),
                       ...TaskStatus.values.map(
-                            (s) => FilterChip(
+                        (s) => FilterChip(
                           label: Text(s.value.replaceAll('_', ' ')),
                           selected: tempStatus == s,
                           onSelected: (sel) =>
@@ -214,11 +209,11 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
                         selectedColor: AppColors.primary.withValues(alpha: 0.2),
                       ),
                       ...mockCategories.map(
-                            (cat) => FilterChip(
+                        (cat) => FilterChip(
                           label: Text(cat.name),
                           selected: tempCategory == cat.id,
                           onSelected: (sel) => setModalState(
-                                  () => tempCategory = sel ? cat.id : null),
+                              () => tempCategory = sel ? cat.id : null),
                           selectedColor: AppColors.primary.withValues(alpha: 0.2),
                         ),
                       ),
@@ -282,63 +277,23 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
-        title: _isSearching
+        title: _showSearch
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                style: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
+                style: AppTextStyles.bodyMedium,
                 decoration: InputDecoration(
                   hintText: 'Search tasks...',
-                  hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textMuted),
+                  hintStyle: AppTextStyles.bodyMedium
+                      .copyWith(color: AppColors.textMuted),
                   border: InputBorder.none,
                 ),
-                onChanged: (val) {
-                  ref.read(taskFilterProvider.notifier).state =
-                      filter.copyWith(search: val);
-                  ref.read(taskListProvider.notifier).loadTasks(
-                        search: val,
-                        status: filter.status,
-                        priority: filter.priority,
-                        categoryId: filter.categoryId,
-                      );
-                },
+                onChanged: _onSearchChanged,
               )
-        title: _showSearch
-            ? TextField(
-          controller: _searchController,
-          autofocus: true,
-          style: AppTextStyles.bodyMedium,
-          decoration: InputDecoration(
-            hintText: 'Search tasks...',
-            hintStyle: AppTextStyles.bodyMedium
-                .copyWith(color: AppColors.textMuted),
-            border: InputBorder.none,
-          ),
-          onChanged: _onSearchChanged,
-        )
             : Text('Tasks', style: AppTextStyles.titleLarge),
         backgroundColor: AppColors.backgroundDark,
-        elevation: 0,
         actions: [
           IconButton(
-            icon: Icon(
-              _isSearching ? Icons.close_rounded : Icons.search_rounded,
-              color: AppColors.textSecondary,
-            ),
-            onPressed: () {
-              setState(() {
-                if (_isSearching) {
-                  _isSearching = false;
-                  _searchController.clear();
-                  ref.read(taskFilterProvider.notifier).state =
-                      filter.copyWith(search: '');
-                  ref.read(taskListProvider.notifier).loadTasks(
-                        status: filter.status,
-                        priority: filter.priority,
-                        categoryId: filter.categoryId,
-                      );
-                } else {
-                  _isSearching = true;
             icon: Icon(_showSearch ? Icons.close_rounded : Icons.search_rounded),
             onPressed: () {
               setState(() {
@@ -348,20 +303,6 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
                   _onSearchChanged('');
                 }
               });
-            },
-          ),
-          IconButton(
-            icon: Icon(
-              Icons.filter_list_rounded,
-              color: filter.hasActiveFilter ? AppColors.primary : AppColors.textSecondary,
-            ),
-            onPressed: () => _showFilterBottomSheet(context),
-            icon: const Icon(Icons.add_rounded),
-            onPressed: () async {
-              final newTask = await context.push<TaskModel>(AppRoutes.taskNew);
-              if (newTask != null) {
-                ref.read(taskListProvider.notifier).addTask(newTask);
-              }
             },
           ),
           Stack(
@@ -390,107 +331,6 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
       ),
       body: Column(
         children: [
-          // Filter Bar
-          TaskFilterBar(
-            filter: filter,
-            onFilterChanged: (newFilter) {
-              ref.read(taskFilterProvider.notifier).state = newFilter;
-              ref.read(taskListProvider.notifier).loadTasks(
-                    status: newFilter.status,
-                    priority: newFilter.priority,
-                    categoryId: newFilter.categoryId,
-                    search: newFilter.search,
-                  );
-            },
-          ),
-
-          // Main Task List
-          Expanded(
-            child: taskState.isLoading && taskState.tasks.isEmpty
-                ? const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  )
-                : RefreshIndicator(
-                    onRefresh: () async {
-                      await ref.read(taskListProvider.notifier).loadTasks(
-                            status: filter.status,
-                            priority: filter.priority,
-                            categoryId: filter.categoryId,
-                            search: filter.search,
-                          );
-                    },
-                    color: AppColors.primary,
-                    child: taskState.tasks.isEmpty
-                        ? ListView(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            children: [
-                              const SizedBox(height: 100),
-                              Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(20),
-                                      decoration: const BoxDecoration(
-                                        color: AppColors.surfaceDark,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.assignment_outlined,
-                                        size: 48,
-                                        color: AppColors.textMuted,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      'No tasks found',
-                                      style: AppTextStyles.titleMedium,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      filter.hasActiveFilter
-                                          ? 'Try clearing filters to see more tasks.'
-                                          : 'Tap the + button to create your first task!',
-                                      style: AppTextStyles.bodySmall.copyWith(
-                                        color: AppColors.textSecondary,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: taskState.tasks.length,
-                            itemBuilder: (context, index) {
-                              final task = taskState.tasks[index];
-                              return TaskCard(
-                                task: task,
-                                onToggle: () {
-                                  ref
-                                      .read(taskListProvider.notifier)
-                                      .toggleTaskCompletion(task.id);
-                                },
-                                onTap: () {
-                                  context.push('/tasks/${task.id}');
-                                },
-                                onDelete: () {
-                                  ref
-                                      .read(taskListProvider.notifier)
-                                      .deleteTask(task.id);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Task deleted'),
-                                      duration: Duration(seconds: 2),
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                  ),
           // Status Tabs
           _buildStatusTabs(filter),
 
@@ -517,8 +357,6 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          await context.push(AppRoutes.taskNew);
-          ref.read(taskListProvider.notifier).loadTasks();
           final newTask = await context.push<TaskModel>(AppRoutes.taskNew);
           if (newTask != null) {
             ref.read(taskListProvider.notifier).addTask(newTask);
@@ -530,111 +368,6 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
     );
   }
 
-  void _showFilterBottomSheet(BuildContext context) {
-    final filter = ref.read(taskFilterProvider);
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surfaceDark,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setModalState) {
-            return Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Filter Tasks', style: AppTextStyles.titleMedium),
-                      TextButton(
-                        onPressed: () {
-                          ref.read(taskFilterProvider.notifier).state =
-                              const TaskFilter();
-                          ref.read(taskListProvider.notifier).loadTasks();
-                          Navigator.pop(ctx);
-                        },
-                        child: Text(
-                          'Reset',
-                          style: AppTextStyles.labelMedium
-                              .copyWith(color: AppColors.error),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Text('Priority', style: AppTextStyles.labelMedium),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: TaskPriority.values.map((p) {
-                      final isSelected = filter.priority == p;
-                      return ChoiceChip(
-                        label: Text(p.label),
-                        selected: isSelected,
-                        selectedColor: AppColors.primary,
-                        backgroundColor: AppColors.cardDark,
-                        labelStyle: TextStyle(
-                          color: isSelected ? Colors.white : AppColors.textSecondary,
-                        ),
-                        onSelected: (selected) {
-                          final newFilter = filter.copyWith(
-                            priority: selected ? p : null,
-                            clearPriority: !selected,
-                          );
-                          ref.read(taskFilterProvider.notifier).state = newFilter;
-                          ref.read(taskListProvider.notifier).loadTasks(
-                                priority: newFilter.priority,
-                                status: newFilter.status,
-                                categoryId: newFilter.categoryId,
-                                search: newFilter.search,
-                              );
-                          Navigator.pop(ctx);
-                        },
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 16),
-                  Text('Status', style: AppTextStyles.labelMedium),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    children: TaskStatus.values.map((s) {
-                      final isSelected = filter.status == s;
-                      return ChoiceChip(
-                        label: Text(s.value.replaceAll('_', ' ')),
-                        selected: isSelected,
-                        selectedColor: AppColors.primary,
-                        backgroundColor: AppColors.cardDark,
-                        labelStyle: TextStyle(
-                          color: isSelected ? Colors.white : AppColors.textSecondary,
-                        ),
-                        onSelected: (selected) {
-                          final newFilter = filter.copyWith(
-                            status: selected ? s : null,
-                            clearStatus: !selected,
-                          );
-                          ref.read(taskFilterProvider.notifier).state = newFilter;
-                          ref.read(taskListProvider.notifier).loadTasks(
-                                status: newFilter.status,
-                                priority: newFilter.priority,
-                                categoryId: newFilter.categoryId,
-                                search: newFilter.search,
-                              );
-                          Navigator.pop(ctx);
-                        },
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 24),
-                ],
-              ),
-            );
   Widget _buildStatusTabs(TaskFilter currentFilter) {
     final statusTabs = [
       {'label': 'All', 'status': null},

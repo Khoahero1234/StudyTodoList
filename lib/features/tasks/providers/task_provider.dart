@@ -432,17 +432,17 @@ class TaskFormNotifier extends StateNotifier<TaskFormState> {
     try {
       TaskModel task;
       if (kUseMock) {
-        final data = <String, dynamic>{};
-        if (title != null) data['title'] = title;
-        if (description != null) data['description'] = description;
-        if (priority != null) data['priority'] = priority.value;
-        if (status != null) data['status'] = status.value;
-        if (dueDate != null) data['dueDate'] = dueDate.toIso8601String();
-        if (dueTime != null) data['dueTime'] = dueTime;
-        if (categoryId != null) data['categoryId'] = categoryId;
-        if (tags != null) data['tags'] = tags;
-        if (subTasks != null) data['subTasks'] = subTasks;
-        if (estimatedMinutes != null) data['estimatedMinutes'] = estimatedMinutes;
+        final data = <String, dynamic>{
+          'title': title,
+          if (description != null) 'description': description,
+          'priority': priority.value,
+          if (dueDate != null) 'dueDate': dueDate.toIso8601String(),
+          if (dueTime != null) 'dueTime': dueTime,
+          if (categoryId != null) 'categoryId': categoryId,
+          if (tags != null) 'tags': tags,
+          if (subTasks != null) 'subTasks': subTasks,
+          if (estimatedMinutes != null) 'estimatedMinutes': estimatedMinutes,
+        };
         task = await _mockRepo!.updateTask(id, data);
       } else {
         task = await _repository!.updateTask(

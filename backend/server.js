@@ -140,6 +140,7 @@ app.use('/health', healthRoutes);
 
 // API Routes
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/tasks', taskRoutes);
 app.use('/api/v1/friends', friendRoutes);
 app.use('/api/v1/chats', chatRoutes);

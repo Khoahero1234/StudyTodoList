@@ -33,7 +33,7 @@ class UserModel {
     required this.updatedAt,
   });
 
-  bool get isAdmin => role == 'admin';
+  bool get isAdmin => role.toUpperCase() == 'ADMIN';
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
@@ -41,7 +41,7 @@ class UserModel {
       email: json['email'] as String? ?? '',
       username: json['username'] as String? ?? '',
       avatarUrl: json['avatarUrl'] as String?,
-      role: json['role'] as String? ?? 'customer',
+      role: (json['role'] as String? ?? 'customer').toLowerCase(),
       isActive: json['isActive'] as bool? ?? true,
       emailVerified: json['emailVerified'] as bool? ?? false,
       isPremium: json['isPremium'] as bool? ?? false,

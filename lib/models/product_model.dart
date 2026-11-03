@@ -71,10 +71,13 @@ class ProductModel {
       stock: json['stock'] as int? ?? 0,
       discountPct: json['discountPct'] as int? ?? 0,
       isAvailable: json['isAvailable'] as bool? ?? true,
-      premiumOnly: json['premiumOnly'] as bool? ?? false,
+      premiumOnly: json['premiumOnly'] as bool? ??
+          json['isPremiumOnly'] as bool? ??
+          false,
       categoryId: json['categoryId'] as String?,
       category: json['category'] != null
-          ? ProductCategoryModel.fromJson(json['category'] as Map<String, dynamic>)
+          ? ProductCategoryModel.fromJson(
+              json['category'] as Map<String, dynamic>)
           : null,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()

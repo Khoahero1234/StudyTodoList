@@ -436,7 +436,7 @@ class TaskFormNotifier extends StateNotifier<TaskFormState> {
         if (title != null) data['title'] = title;
         if (description != null) data['description'] = description;
         if (priority != null) data['priority'] = priority.value;
-        if (status != null) data['status'] = status.value;
+        // if (status != null) data['status'] = status.value;
         if (dueDate != null) data['dueDate'] = dueDate.toIso8601String();
         if (dueTime != null) data['dueTime'] = dueTime;
         if (categoryId != null) data['categoryId'] = categoryId;

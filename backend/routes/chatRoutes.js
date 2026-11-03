@@ -10,6 +10,8 @@ router.post('/conversations', verifyToken, chatController.createConversation);
 router.get('/conversations', verifyToken, chatController.listConversations);
 // Get messages of a conversation (paged)
 router.get('/conversations/:id/messages', verifyToken, chatController.listMessages);
+// Send a message via REST API
+router.post('/conversations/:id/messages', verifyToken, chatController.sendMessage);
 // Delete a conversation (owner only for group)
 router.delete('/conversations/:id', verifyToken, chatController.deleteConversation);
 

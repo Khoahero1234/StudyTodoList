@@ -6,7 +6,11 @@ const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_jwt_key_for_dev';
 
 const generateTokens = (user) => {
-    const accessToken = jwt.sign({ id: user.id, email: user.email, username: user.username }, JWT_SECRET, { expiresIn: '1d' });
+    const accessToken = jwt.sign(
+        { id: user.id, email: user.email, username: user.username, role: user.role },
+        JWT_SECRET,
+        { expiresIn: '1d' }
+    );
     const refreshToken = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '7d' });
     return { accessToken, refreshToken };
 };
@@ -27,6 +31,8 @@ exports.login = async (req, res) => {
                 id: user.id,
                 email: user.email,
                 username: user.username,
+                role: user.role,
+                isActive: user.isActive,
                 currentStreak: user.currentStreak,
                 tokenBalance: user.tokenBalance,
                 isPremium: user.isPremium,
@@ -67,6 +73,8 @@ exports.register = async (req, res) => {
                 id: newUser.id,
                 email: newUser.email,
                 username: newUser.username,
+                role: newUser.role,
+                isActive: newUser.isActive,
                 currentStreak: newUser.currentStreak,
                 tokenBalance: newUser.tokenBalance,
                 isPremium: newUser.isPremium,
@@ -114,6 +122,8 @@ exports.getCurrentUser = async (req, res) => {
             id: user.id,
             email: user.email,
             username: user.username,
+            role: user.role,
+            isActive: user.isActive,
             currentStreak: user.currentStreak,
             tokenBalance: user.tokenBalance,
             isPremium: user.isPremium,

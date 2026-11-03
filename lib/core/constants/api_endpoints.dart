@@ -79,8 +79,7 @@ class ApiEndpoints {
 
   // Notifications
   static const String notifications = '/notifications';
-  static String markNotificationRead(String id) =>
-      '/notifications/$id/read';
+  static String markNotificationRead(String id) => '/notifications/$id/read';
 
   // Friends
   static const String friends = '/friends';
@@ -98,8 +97,10 @@ class ApiEndpoints {
 
   // Admin
   static const String adminUsers = '/admin/users';
-  static String adminUserStatus(String id) => '/admin/users/$id/status';
+  static String adminUserRole(String id) => '/admin/users/$id/role';
+  static String adminUserStatus(String id) => '/admin/users/$id/ban';
   static const String adminProducts = '/admin/products';
   static String adminProductById(String id) => '/admin/products/$id';
-  static const String adminStats = '/admin/stats';
+  static const String adminCategories = '/admin/categories';
+  static String adminCategoryById(String id) => '/admin/categories/$id';
 }

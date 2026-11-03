@@ -1,4 +1,4 @@
-﻿// lib/features/pet/screens/pet_screen.dart
+// lib/features/pet/screens/pet_screen.dart
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -11,12 +11,12 @@ class PetScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
-        title: Text('Virtual Pet', style: AppTextStyles.titleLarge),
+        title: Text('Pet Companion', style: AppTextStyles.titleLarge),
         backgroundColor: AppColors.backgroundDark,
       ),
       body: const Center(
         child: Text(
-          '🐾 Virtual Pet\ncoming in Phase 8',
+          '🐾 Virtual Pet\ncoming soon',
           textAlign: TextAlign.center,
           style: TextStyle(color: AppColors.textSecondary),
         ),

@@ -142,15 +142,16 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-class _ProgressCard extends StatelessWidget {
+class _ProgressCard extends ConsumerWidget {
   final dynamic user;
   const _ProgressCard({this.user});
 
   @override
-  Widget build(BuildContext context) {
-    const completedTasks = 6;
-    const totalTasks = 8;
-    const progress = completedTasks / totalTasks;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final todayTasks = ref.watch(todayTasksProvider);
+    final totalTasks = todayTasks.length;
+    final completedTasks = todayTasks.where((t) => t.isCompleted).length;
+    final progress = totalTasks > 0 ? completedTasks / totalTasks : 0.0;
 
     return Container(
       padding: const EdgeInsets.all(20),

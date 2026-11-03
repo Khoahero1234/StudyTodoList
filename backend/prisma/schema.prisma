@@ -752,7 +752,7 @@ model UserReward {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   rewardId  String
-  reward    Reward   @relation(fields: [rewardId], references: [id])
+  reward    Reward   @relation(fields: [rewardId], references: [id], onDelete: Cascade)
   claimedAt DateTime @default(now())
 
   @@unique([userId, rewardId])

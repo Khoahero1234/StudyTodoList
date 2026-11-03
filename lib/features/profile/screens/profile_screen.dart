@@ -1,4 +1,5 @@
 // lib/features/profile/screens/profile_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,10 +7,27 @@ import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../features/auth/providers/auth_provider.dart';
+import '../../../models/user_model.dart';
 import '../../../shared/widgets/app_button.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
+
+  String _getAvatarInitial(UserModel? user) {
+    final name = user?.username.trim() ?? '';
+    if (name.isNotEmpty) {
+      return name[0].toUpperCase();
+    }
+    return 'U';
+  }
+
+  String _getDisplayName(UserModel? user) {
+    final name = user?.username.trim() ?? '';
+    if (name.isNotEmpty) {
+      return name;
+    }
+    return 'User';
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -36,14 +54,14 @@ class ProfileScreen extends ConsumerWidget {
                         radius: 42,
                         backgroundColor: Colors.white30,
                         child: Text(
-                          (user?.username ?? 'U')[0].toUpperCase(),
+                          _getAvatarInitial(user),
                           style: AppTextStyles.headlineLarge
                               .copyWith(color: Colors.white),
                         ),
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        user?.username ?? 'User',
+                        _getDisplayName(user),
                         style: AppTextStyles.titleLarge
                             .copyWith(color: Colors.white),
                       ),
@@ -62,7 +80,7 @@ class ProfileScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(20),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                // Stats
+                // Quick Stats Row
                 Row(
                   children: [
                     Expanded(
@@ -91,7 +109,14 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
+
+                // Daily Login Streak Widget Banner with Quick Claim Button
+                _StreakBannerCard(
+                  streakDays: user?.currentStreak ?? 0,
+                  onTap: () => context.push(AppRoutes.rewards),
+                ),
+                const SizedBox(height: 20),
 
                 // Premium upgrade card
                 if (user?.isPremium != true) ...[
@@ -99,7 +124,7 @@ class ProfileScreen extends ConsumerWidget {
                   const SizedBox(height: 20),
                 ],
 
-                // Menu items
+                // Account Menu
                 _MenuSection(
                   title: 'Account',
                   items: [
@@ -122,6 +147,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
 
+                // Features Menu
                 _MenuSection(
                   title: 'Features',
                   items: [
@@ -141,6 +167,11 @@ class ProfileScreen extends ConsumerWidget {
                       onTap: () => context.push(AppRoutes.wallet),
                     ),
                     _MenuItem(
+                      icon: Icons.local_fire_department_rounded,
+                      label: 'Daily Rewards & Streak',
+                      onTap: () => context.push(AppRoutes.rewards),
+                    ),
+                    _MenuItem(
                       icon: Icons.school_rounded,
                       label: 'Study Rooms',
                       onTap: () => context.push(AppRoutes.studyRooms),
@@ -149,6 +180,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
 
+                // Support Menu
                 _MenuSection(
                   title: 'Support',
                   items: [
@@ -166,7 +198,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
 
-                // Logout
+                // Logout Button
                 AppButton(
                   label: 'Sign Out',
                   variant: AppButtonVariant.danger,
@@ -247,6 +279,101 @@ class _ProfileStat extends StatelessWidget {
   }
 }
 
+class _StreakBannerCard extends StatelessWidget {
+  final int streakDays;
+  final VoidCallback onTap;
+
+  const _StreakBannerCard({
+    required this.streakDays,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFF6B35), Color(0xFFFF8E53)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFF6B35).withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Text(
+              '🔥',
+              style: TextStyle(fontSize: 28),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Daily Login Streak',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$streakDays ${streakDays == 1 ? "Day" : "Days"} Active',
+                  style: AppTextStyles.titleMedium.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Text(
+                'Claim Rewards',
+                style: TextStyle(
+                  color: Color(0xFFFF6B35),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PremiumCard extends StatelessWidget {
   final VoidCallback onTap;
   const _PremiumCard({required this.onTap});
@@ -262,7 +389,7 @@ class _PremiumCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: AppColors.gold.withOpacity(0.3),
+              color: AppColors.gold.withValues(alpha: 0.3),
               blurRadius: 20,
               offset: const Offset(0, 6),
             ),

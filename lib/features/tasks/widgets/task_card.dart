@@ -4,8 +4,6 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/date_utils.dart';
-
-import 'package:studytodolist/core/models/chat_conversation.dart';
 import '../../../models/task_model.dart';
 
 class TaskCard extends StatefulWidget {
@@ -47,7 +45,7 @@ class _TaskCardState extends State<TaskCard> {
   @override
   Widget build(BuildContext context) {
     final task = widget.task;
-
+    final isCompleted = task.isCompleted;
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressing = true),
@@ -114,7 +112,7 @@ class _TaskCardState extends State<TaskCard> {
 
   Widget _buildMainRow() {
     final task = widget.task;
-
+    final isCompleted = task.isCompleted;
 
     return Padding(
       padding: const EdgeInsets.all(14),
@@ -132,24 +130,32 @@ class _TaskCardState extends State<TaskCard> {
           ),
           const SizedBox(width: 12),
 
-          // Checkbox
+          // Checkbox (Auto-complete indicator, non-interactive for manual completion)
           GestureDetector(
-            onTap: widget.onToggle,
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Tasks are completed automatically (via Pomodoro or subtasks)!'),
+                  duration: Duration(seconds: 2),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: 24,
               height: 24,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: task.isCompleted
+                color: isCompleted
                     ? AppColors.primary.withValues(alpha: 0.2)
                     : Colors.transparent,
                 border: Border.all(
-                  color: task.isCompleted ? AppColors.primary : AppColors.borderDark,
+                  color: isCompleted ? AppColors.primary : AppColors.borderDark,
                   width: 2,
                 ),
               ),
-              child: task.isCompleted
+              child: isCompleted
                   ? const Icon(Icons.check_rounded,
                       color: AppColors.primary, size: 14)
                   : null,
@@ -164,9 +170,9 @@ class _TaskCardState extends State<TaskCard> {
               children: [
                 Text(
                   task.title,
-                  style: task.isCompleted
-                    ? AppTextStyles.taskTitleCompleted
-                    : AppTextStyles.taskTitle,
+                  style: isCompleted
+                      ? AppTextStyles.taskTitleCompleted
+                      : AppTextStyles.taskTitle,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -220,11 +226,10 @@ class _TaskCardState extends State<TaskCard> {
   Widget _buildMetaRow() {
     final task = widget.task;
     final items = <Widget>[];
-    final bool isOverdue = task.isOverdue;
 
     // Due date
     if (task.dueDate != null && widget.showDate) {
-
+      final isOverdue = task.isOverdue;
       final label = AppDateUtils.isToday(task.dueDate!)
           ? 'Today'
           : AppDateUtils.isTomorrow(task.dueDate!)

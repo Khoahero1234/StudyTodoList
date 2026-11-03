@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/mock/mock_data.dart';
 import '../../../core/mock/mock_task_repository.dart';
 import '../../../features/auth/providers/auth_provider.dart';
+import '../../../features/wallet/providers/wallet_provider.dart';
 import '../../../models/task_model.dart';
 import '../data/task_remote_datasource.dart';
 import '../data/task_repository.dart';
@@ -113,10 +114,12 @@ class TaskListState {
 class TaskListNotifier extends StateNotifier<TaskListState> {
   final TaskRepository? _repository;
   final MockTaskRepository? _mockRepo;
+  final Ref _ref;
 
-  TaskListNotifier({TaskRepository? repository, MockTaskRepository? mockRepo})
+  TaskListNotifier({TaskRepository? repository, MockTaskRepository? mockRepo, required Ref ref})
       : _repository = repository,
         _mockRepo = mockRepo,
+        _ref = ref,
         super(const TaskListState());
 
   Future<PaginatedTasks> _fetch({
@@ -212,19 +215,71 @@ class TaskListNotifier extends StateNotifier<TaskListState> {
 
   Future<void> completeTask(String id) async {
     try {
+      final taskBefore = state.tasks.firstWhere((t) => t.id == id, orElse: () => state.tasks.first);
       final updated = kUseMock
           ? await _mockRepo!.completeTask(id)
           : await _repository!.completeTask(id);
       state = state.copyWith(
         tasks: state.tasks.map((t) => t.id == id ? updated : t).toList(),
       );
-    } catch (e) {
-      // Ignore API failure
-    }
+      if (!taskBefore.isCompleted && updated.isCompleted) {
+        _ref.read(authProvider.notifier).addTokens(updated.tokenReward);
+        _ref.read(walletProvider.notifier).addRewardTransaction(updated.tokenReward, updated.title);
+      }
+      _ref.read(authProvider.notifier).refreshUser();
+    } catch (_) {}
+  }
+
+  Future<void> toggleTaskCompletion(String id) async {
+    final task = state.tasks.firstWhere(
+      (t) => t.id == id,
+      orElse: () => TaskModel(
+        id: id,
+        userId: '',
+        title: '',
+        priority: TaskPriority.medium,
+        status: TaskStatus.pending,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      ),
+    );
+
+    final isCompleting = !task.isCompleted;
+
+    state = state.copyWith(
+      tasks: state.tasks.map((t) {
+        if (t.id != id) return t;
+        return t.copyWith(
+          status: isCompleting ? TaskStatus.completed : TaskStatus.pending,
+          completedAt: isCompleting ? DateTime.now() : null,
+        );
+      }).toList(),
+    );
+
+    try {
+      TaskModel updatedTask;
+      if (kUseMock) {
+        if (isCompleting) {
+          updatedTask = await _mockRepo!.completeTask(id);
+        } else {
+          updatedTask = await _mockRepo!.updateTask(id, {'status': 'PENDING'});
+        }
+      } else {
+        if (isCompleting) {
+          updatedTask = await _repository!.completeTask(id);
+        } else {
+          updatedTask = await _repository!.updateTask(id: id, status: TaskStatus.pending);
+        }
+      }
+      if (isCompleting) {
+        _ref.read(authProvider.notifier).addTokens(updatedTask.tokenReward);
+        _ref.read(walletProvider.notifier).addRewardTransaction(updatedTask.tokenReward, updatedTask.title);
+      }
+      _ref.read(authProvider.notifier).refreshUser();
+    } catch (_) {}
   }
 
   Future<void> deleteTask(String id) async {
-    // Optimistic update
     state = state.copyWith(
       tasks: state.tasks.where((t) => t.id != id).toList(),
     );
@@ -234,9 +289,7 @@ class TaskListNotifier extends StateNotifier<TaskListState> {
       } else {
         await _repository!.deleteTask(id);
       }
-    } catch (_) {
-      // Đã xóa optimistically — bỏ qua lỗi
-    }
+    } catch (_) {}
   }
 
   void addTask(TaskModel task) {
@@ -248,67 +301,72 @@ class TaskListNotifier extends StateNotifier<TaskListState> {
       tasks: state.tasks.map((t) => t.id == updated.id ? updated : t).toList(),
     );
   }
-
-  void toggleTaskCompletion(String id) {
-    state = state.copyWith(
-      tasks: state.tasks.map((t) {
-        if (t.id != id) return t;
-        final newStatus =
-            t.isCompleted ? TaskStatus.pending : TaskStatus.completed;
-        return t.copyWith(
-          status: newStatus,
-          completedAt:
-              newStatus == TaskStatus.completed ? DateTime.now() : null,
-        );
-      }).toList(),
-    );
-  }
 }
 
 final taskListProvider =
     StateNotifierProvider<TaskListNotifier, TaskListState>((ref) {
-  if (kUseMock) {
-    return TaskListNotifier(mockRepo: ref.watch(mockTaskRepositoryProvider));
-  }
   final repository = ref.watch(taskRepositoryProvider);
-  return TaskListNotifier(repository: repository);
+  final mockRepo = ref.watch(mockTaskRepositoryProvider);
+  return TaskListNotifier(repository: repository, mockRepo: mockRepo, ref: ref);
 });
 
 final todayTasksProvider = Provider<List<TaskModel>>((ref) {
   final tasks = ref.watch(taskListProvider).tasks;
   final now = DateTime.now();
   return tasks.where((t) {
-    if (t.dueDate == null) return false;
-    final d = t.dueDate!;
-    return d.year == now.year && d.month == now.month && d.day == now.day;
+    final isDueToday = t.dueDate != null &&
+        t.dueDate!.year == now.year &&
+        t.dueDate!.month == now.month &&
+        t.dueDate!.day == now.day;
+    final isCompletedToday = t.completedAt != null &&
+        t.completedAt!.year == now.year &&
+        t.completedAt!.month == now.month &&
+        t.completedAt!.day == now.day;
+    return isDueToday || isCompletedToday;
   }).toList();
 });
 
+// ─── Task Form State & Notifier ──────────────────────────────
 class TaskFormState {
   final bool isLoading;
   final String? errorMessage;
-  final bool isSuccess;
 
   const TaskFormState({
     this.isLoading = false,
     this.errorMessage,
-    this.isSuccess = false,
   });
+
+  TaskFormState copyWith({
+    bool? isLoading,
+    String? errorMessage,
+    bool clearError = false,
+  }) {
+    return TaskFormState(
+      isLoading: isLoading ?? this.isLoading,
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+    );
+  }
 }
 
 class TaskFormNotifier extends StateNotifier<TaskFormState> {
   final TaskRepository? _repository;
   final MockTaskRepository? _mockRepo;
+  final Ref _ref;
 
-  TaskFormNotifier({TaskRepository? repository, MockTaskRepository? mockRepo})
+  TaskFormNotifier({TaskRepository? repository, MockTaskRepository? mockRepo, required Ref ref})
       : _repository = repository,
         _mockRepo = mockRepo,
+        _ref = ref,
         super(const TaskFormState());
+
+  void reset() {
+    state = const TaskFormState();
+  }
 
   Future<TaskModel?> createTask({
     required String title,
     String? description,
-    TaskPriority priority = TaskPriority.medium,
+    required TaskPriority priority,
     DateTime? dueDate,
     String? dueTime,
     String? categoryId,
@@ -317,55 +375,60 @@ class TaskFormNotifier extends StateNotifier<TaskFormState> {
     bool isRecurring = false,
     String? recurringPattern,
   }) async {
-    state = const TaskFormState(isLoading: true);
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final data = {
-        'title': title,
-        if (description != null) 'description': description,
-        'priority': priority.value,
-        if (dueDate != null) 'dueDate': dueDate.toIso8601String(),
-        if (dueTime != null) 'dueTime': dueTime,
-        if (categoryId != null) 'categoryId': categoryId,
-        'tags': tags,
-        'estimatedMinutes': estimatedMinutes,
-        'isRecurring': isRecurring,
-        if (recurringPattern != null) 'recurringPattern': recurringPattern,
-      };
-      final task = kUseMock
-          ? await _mockRepo!.createTask(data)
-          : await _repository!.createTask(
-              title: title,
-              description: description,
-              priority: priority,
-              dueDate: dueDate,
-              dueTime: dueTime,
-              categoryId: categoryId,
-              tags: tags,
-              estimatedMinutes: estimatedMinutes,
-              isRecurring: isRecurring,
-              recurringPattern: recurringPattern,
-            );
-      state = const TaskFormState(isSuccess: true);
+      TaskModel task;
+      if (kUseMock) {
+        task = await _mockRepo!.createTask({
+          'title': title,
+          'description': description,
+          'priority': priority.name.toUpperCase(),
+          'dueDate': dueDate?.toIso8601String(),
+          'dueTime': dueTime,
+          'categoryId': categoryId,
+          'tags': tags,
+          'estimatedMinutes': estimatedMinutes,
+          'isRecurring': isRecurring,
+          'recurringPattern': recurringPattern,
+        });
+      } else {
+        task = await _repository!.createTask(
+          title: title,
+          description: description,
+          priority: priority,
+          dueDate: dueDate,
+          dueTime: dueTime,
+          categoryId: categoryId,
+          tags: tags,
+          estimatedMinutes: estimatedMinutes,
+          isRecurring: isRecurring,
+          recurringPattern: recurringPattern,
+        );
+      }
+      _ref.read(taskListProvider.notifier).addTask(task);
+      _ref.read(walletProvider.notifier).refreshWallet();
+      _ref.read(authProvider.notifier).refreshUser();
+      state = state.copyWith(isLoading: false);
       return task;
     } catch (e) {
-      state = TaskFormState(errorMessage: e.toString());
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
       return null;
     }
   }
 
   Future<TaskModel?> updateTask({
     required String id,
-    String? title,
+    required String title,
     String? description,
-    TaskPriority? priority,
-    TaskStatus? status,
+    required TaskPriority priority,
     DateTime? dueDate,
     String? dueTime,
     String? categoryId,
     List<String>? tags,
+    List<SubTask>? subTasks,
     int? estimatedMinutes,
   }) async {
-    state = const TaskFormState(isLoading: true);
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
       TaskModel task;
       if (kUseMock) {
@@ -373,11 +436,12 @@ class TaskFormNotifier extends StateNotifier<TaskFormState> {
         if (title != null) data['title'] = title;
         if (description != null) data['description'] = description;
         if (priority != null) data['priority'] = priority.value;
-        if (status != null) data['status'] = status.value;
+        // if (status != null) data['status'] = status.value;
         if (dueDate != null) data['dueDate'] = dueDate.toIso8601String();
         if (dueTime != null) data['dueTime'] = dueTime;
         if (categoryId != null) data['categoryId'] = categoryId;
         if (tags != null) data['tags'] = tags;
+        if (subTasks != null) data['subTasks'] = subTasks;
         if (estimatedMinutes != null) data['estimatedMinutes'] = estimatedMinutes;
         task = await _mockRepo!.updateTask(id, data);
       } else {
@@ -386,30 +450,27 @@ class TaskFormNotifier extends StateNotifier<TaskFormState> {
           title: title,
           description: description,
           priority: priority,
-          status: status,
           dueDate: dueDate,
           dueTime: dueTime,
           categoryId: categoryId,
           tags: tags,
+          subTasks: subTasks,
           estimatedMinutes: estimatedMinutes,
         );
       }
-      state = const TaskFormState(isSuccess: true);
+      _ref.read(taskListProvider.notifier).updateTask(task);
+      state = state.copyWith(isLoading: false);
       return task;
     } catch (e) {
-      state = TaskFormState(errorMessage: e.toString());
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
       return null;
     }
   }
-
-  void reset() => state = const TaskFormState();
 }
 
 final taskFormProvider =
-    StateNotifierProvider.autoDispose<TaskFormNotifier, TaskFormState>((ref) {
-  if (kUseMock) {
-    return TaskFormNotifier(mockRepo: ref.watch(mockTaskRepositoryProvider));
-  }
-  return TaskFormNotifier(repository: ref.watch(taskRepositoryProvider));
+    StateNotifierProvider<TaskFormNotifier, TaskFormState>((ref) {
+  final repository = ref.watch(taskRepositoryProvider);
+  final mockRepo = ref.watch(mockTaskRepositoryProvider);
+  return TaskFormNotifier(repository: repository, mockRepo: mockRepo, ref: ref);
 });
-

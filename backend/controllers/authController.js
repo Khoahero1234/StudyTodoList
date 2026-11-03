@@ -31,10 +31,11 @@ exports.login = async (req, res) => {
                 id: user.id,
                 email: user.email,
                 username: user.username,
-                displayName: user.displayName,
-                avatarUrl: user.avatarUrl,
-                role: user.role,
-                createdAt: user.createdAt
+                currentStreak: user.currentStreak,
+                tokenBalance: user.tokenBalance,
+                isPremium: user.isPremium,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt
             },
             accessToken,
             refreshToken
@@ -54,7 +55,7 @@ exports.register = async (req, res) => {
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        
+
         const newUser = await prisma.user.create({
             data: {
                 email,
@@ -70,10 +71,11 @@ exports.register = async (req, res) => {
                 id: newUser.id,
                 email: newUser.email,
                 username: newUser.username,
-                displayName: newUser.displayName,
-                avatarUrl: newUser.avatarUrl,
-                role: newUser.role,
-                createdAt: newUser.createdAt
+                currentStreak: newUser.currentStreak,
+                tokenBalance: newUser.tokenBalance,
+                isPremium: newUser.isPremium,
+                createdAt: newUser.createdAt,
+                updatedAt: newUser.updatedAt
             },
             accessToken,
             refreshToken
@@ -116,12 +118,11 @@ exports.getCurrentUser = async (req, res) => {
             id: user.id,
             email: user.email,
             username: user.username,
-            displayName: user.displayName,
-            avatarUrl: user.avatarUrl,
-            role: user.role,
-            xp: user.xp,
-            level: user.level,
-            createdAt: user.createdAt
+            currentStreak: user.currentStreak,
+            tokenBalance: user.tokenBalance,
+            isPremium: user.isPremium,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

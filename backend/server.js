@@ -10,6 +10,7 @@ const taskRoutes = require('./routes/taskRoutes');
 const friendRoutes = require('./routes/friendRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const studyRoomRoutes = require('./routes/studyRoomRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 // const categoryRoutes = require('./routes/categoryRoutes');
 // const goalRoutes = require('./routes/goalRoutes');
@@ -82,6 +83,7 @@ app.use('/api/v1/tasks', taskRoutes);
 app.use('/api/v1/friends', friendRoutes);
 app.use('/api/v1/chats', chatRoutes);
 app.use('/api/v1/studyrooms', studyRoomRoutes);
+app.use('/api/v1/admin', adminRoutes);
 // API V1 Routes
 // app.use('/api/v1/categories', categoryRoutes);
 // app.use('/api/v1/goals', goalRoutes);

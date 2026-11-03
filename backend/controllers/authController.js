@@ -6,7 +6,11 @@ const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_jwt_key_for_dev';
 
 const generateTokens = (user) => {
-    const accessToken = jwt.sign({ id: user.id, email: user.email, username: user.username }, JWT_SECRET, { expiresIn: '1d' });
+    const accessToken = jwt.sign(
+        { id: user.id, email: user.email, username: user.username, role: user.role },
+        JWT_SECRET,
+        { expiresIn: '1d' }
+    );
     const refreshToken = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '7d' });
     return { accessToken, refreshToken };
 };
@@ -27,9 +31,9 @@ exports.login = async (req, res) => {
                 id: user.id,
                 email: user.email,
                 username: user.username,
-                currentStreak: user.currentStreak,
-                tokenBalance: user.tokenBalance,
-                isPremium: user.isPremium,
+                displayName: user.displayName,
+                avatarUrl: user.avatarUrl,
+                role: user.role,
                 createdAt: user.createdAt
             },
             accessToken,
@@ -66,9 +70,9 @@ exports.register = async (req, res) => {
                 id: newUser.id,
                 email: newUser.email,
                 username: newUser.username,
-                currentStreak: newUser.currentStreak,
-                tokenBalance: newUser.tokenBalance,
-                isPremium: newUser.isPremium,
+                displayName: newUser.displayName,
+                avatarUrl: newUser.avatarUrl,
+                role: newUser.role,
                 createdAt: newUser.createdAt
             },
             accessToken,
@@ -112,9 +116,11 @@ exports.getCurrentUser = async (req, res) => {
             id: user.id,
             email: user.email,
             username: user.username,
-            currentStreak: user.currentStreak,
-            tokenBalance: user.tokenBalance,
-            isPremium: user.isPremium,
+            displayName: user.displayName,
+            avatarUrl: user.avatarUrl,
+            role: user.role,
+            xp: user.xp,
+            level: user.level,
             createdAt: user.createdAt
         });
     } catch (error) {

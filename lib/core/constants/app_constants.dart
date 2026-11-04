@@ -1,4 +1,6 @@
 // lib/core/constants/app_constants.dart
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class AppConstants {
   AppConstants._();
@@ -6,10 +8,18 @@ class AppConstants {
   static const String appName = 'StudyTodoList';
   static const String appVersion = '1.0.0';
 
-  // API
-  // Physical Android device over USB: forward port 3000 with `adb reverse`.
-  // static const String baseUrl = 'http://192.168.56.1:3000/api/v1';
-  static const String baseUrl = 'http://localhost:3000/api/v1'; // iOS simulator
+  // API Base URL
+  // - Android Emulator: 10.0.2.2 trỏ trực tiếp về localhost của máy tính (Windows) mà không cần adb reverse
+  // - iOS Simulator / Web / Desktop: localhost:3000
+  static String get baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:3000/api/v1';
+    }
+    if (Platform.isAndroid) {
+      return 'http://10.0.2.2:3000/api/v1';
+    }
+    return 'http://localhost:3000/api/v1';
+  }
 
   // Timeouts
   static const Duration connectTimeout = Duration(seconds: 10);

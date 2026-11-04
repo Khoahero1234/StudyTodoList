@@ -74,16 +74,18 @@ class WalletNotifier extends StateNotifier<WalletState> {
         final balance = userState.user?.tokenBalance ?? 250;
         state = state.copyWith(
           balance: balance,
-          transactions: [
-            TokenTransactionModel(
-              id: 'tx-001',
-              walletId: 'wallet-001',
-              type: 'REWARD',
-              amount: balance,
-              description: 'Token tích lũy từ nhiệm vụ & điểm danh',
-              createdAt: DateTime.now(),
-            ),
-          ],
+          transactions: state.transactions.isNotEmpty
+              ? state.transactions
+              : [
+                  TokenTransactionModel(
+                    id: 'tx-001',
+                    walletId: 'wallet-001',
+                    type: 'REWARD',
+                    amount: balance,
+                    description: 'Token tích lũy từ nhiệm vụ & điểm danh',
+                    createdAt: DateTime.now(),
+                  ),
+                ],
           isLoading: false,
           hasMore: false,
         );
@@ -91,14 +93,14 @@ class WalletNotifier extends StateNotifier<WalletState> {
       }
 
       final walletData = await _remoteDataSource.getWalletInfo();
-      final balance = walletData['balance'] as int? ?? 0;
-      
+      final balance = (walletData['balance'] as num?)?.toInt() ?? 0;
+
       final txData = await _remoteDataSource.getTransactions(page: 1, limit: 20);
       final rawList = txData['transactions'] as List<dynamic>? ?? [];
       final transactions = rawList
           .map((e) => TokenTransactionModel.fromJson(e as Map<String, dynamic>))
           .toList();
-      
+
       final pagination = txData['pagination'] as Map<String, dynamic>? ?? {};
       final currentPage = pagination['page'] as int? ?? 1;
       final totalPages = pagination['totalPages'] as int? ?? 1;
@@ -111,12 +113,15 @@ class WalletNotifier extends StateNotifier<WalletState> {
         totalPages: totalPages,
         hasMore: currentPage < totalPages,
       );
+
+      // Đồng bộ số dư token sang authProvider để Home / Profile / Shop luôn nhất quán
+      _ref.read(authProvider.notifier).setTokenBalance(balance);
     } catch (e) {
       final userState = _ref.read(authProvider);
-      final balance = userState.user?.tokenBalance ?? 250;
+      final fallbackBalance =
+          state.balance > 0 ? state.balance : (userState.user?.tokenBalance ?? 0);
       state = state.copyWith(
-        balance: balance,
-        transactions: [],
+        balance: fallbackBalance,
         isLoading: false,
       );
     }
@@ -140,6 +145,38 @@ class WalletNotifier extends StateNotifier<WalletState> {
       balance: newBalance,
       transactions: [newTx, ...state.transactions],
     );
+    _ref.read(authProvider.notifier).setTokenBalance(newBalance);
+  }
+
+  /// Trừ token ngay lập tức trên UI khi mua hàng trong Shop và thêm lịch sử giao dịch
+  void recordPurchaseDeduction({
+    required int deductedTokens,
+    required String itemSummary,
+    int? updatedServerBalance,
+    TokenTransactionModel? serverTransaction,
+  }) {
+    final newBalance = updatedServerBalance ??
+        (state.balance - deductedTokens).clamp(0, 999999999);
+    final newTx = serverTransaction ??
+        TokenTransactionModel(
+          id: 'tx-${DateTime.now().millisecondsSinceEpoch}',
+          walletId: 'wallet-001',
+          type: 'SPEND',
+          amount: -deductedTokens,
+          description: 'Mua vật phẩm Shop: $itemSummary',
+          createdAt: DateTime.now(),
+        );
+
+    final updatedTransactions = [
+      newTx,
+      ...state.transactions.where((t) => t.id != newTx.id),
+    ];
+
+    state = state.copyWith(
+      balance: newBalance,
+      transactions: updatedTransactions,
+    );
+    _ref.read(authProvider.notifier).setTokenBalance(newBalance);
   }
 
   Future<void> loadMoreTransactions() async {
@@ -148,7 +185,8 @@ class WalletNotifier extends StateNotifier<WalletState> {
     state = state.copyWith(isLoadingMore: true);
     try {
       final nextPage = state.currentPage + 1;
-      final txData = await _remoteDataSource.getTransactions(page: nextPage, limit: 20);
+      final txData =
+          await _remoteDataSource.getTransactions(page: nextPage, limit: 20);
       final rawList = txData['transactions'] as List<dynamic>? ?? [];
       final newTransactions = rawList
           .map((e) => TokenTransactionModel.fromJson(e as Map<String, dynamic>))
@@ -173,7 +211,8 @@ class WalletNotifier extends StateNotifier<WalletState> {
   }
 }
 
-final walletProvider = StateNotifierProvider<WalletNotifier, WalletState>((ref) {
+final walletProvider =
+    StateNotifierProvider<WalletNotifier, WalletState>((ref) {
   final remoteDataSource = ref.watch(walletRemoteDataSourceProvider);
   return WalletNotifier(remoteDataSource, ref);
 });

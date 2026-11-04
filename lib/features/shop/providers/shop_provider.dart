@@ -1,8 +1,11 @@
 // lib/features/shop/providers/shop_provider.dart
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/mock/mock_data.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../models/product_model.dart';
+import '../../../models/token_transaction_model.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../wallet/providers/wallet_provider.dart';
 import '../data/shop_remote_datasource.dart';
@@ -46,10 +49,14 @@ class ShopFilter {
 class ShopState {
   final List<ProductModel> products;
   final List<ProductCategoryModel> categories;
+  final List<InventoryItemModel> inventory;
+  final List<OrderModel> orders;
   final ShopFilter filter;
   final bool isLoading;
   final bool isLoadingMore;
+  final bool isLoadingInventory;
   final String? errorMessage;
+  final String? lastPurchaseMessage;
   final int currentPage;
   final int totalPages;
   final bool hasMore;
@@ -57,10 +64,14 @@ class ShopState {
   const ShopState({
     this.products = const [],
     this.categories = const [],
+    this.inventory = const [],
+    this.orders = const [],
     this.filter = const ShopFilter(),
     this.isLoading = false,
     this.isLoadingMore = false,
+    this.isLoadingInventory = false,
     this.errorMessage,
+    this.lastPurchaseMessage,
     this.currentPage = 1,
     this.totalPages = 1,
     this.hasMore = false,
@@ -69,22 +80,33 @@ class ShopState {
   ShopState copyWith({
     List<ProductModel>? products,
     List<ProductCategoryModel>? categories,
+    List<InventoryItemModel>? inventory,
+    List<OrderModel>? orders,
     ShopFilter? filter,
     bool? isLoading,
     bool? isLoadingMore,
+    bool? isLoadingInventory,
     String? errorMessage,
+    String? lastPurchaseMessage,
     int? currentPage,
     int? totalPages,
     bool? hasMore,
     bool clearError = false,
+    bool clearPurchaseMessage = false,
   }) {
     return ShopState(
       products: products ?? this.products,
       categories: categories ?? this.categories,
+      inventory: inventory ?? this.inventory,
+      orders: orders ?? this.orders,
       filter: filter ?? this.filter,
       isLoading: isLoading ?? this.isLoading,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      isLoadingInventory: isLoadingInventory ?? this.isLoadingInventory,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      lastPurchaseMessage: clearPurchaseMessage
+          ? null
+          : (lastPurchaseMessage ?? this.lastPurchaseMessage),
       currentPage: currentPage ?? this.currentPage,
       totalPages: totalPages ?? this.totalPages,
       hasMore: hasMore ?? this.hasMore,
@@ -100,17 +122,31 @@ class ShopNotifier extends StateNotifier<ShopState> {
     initShop();
   }
 
+  String _cleanError(Object e) {
+    final s = e.toString();
+    return s.startsWith('Exception: ') ? s.substring(11) : s;
+  }
+
   Future<void> initShop() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
+      // Đảm bảo dữ liệu ví được tải mới nhất khi vào Shop
+      _ref.read(walletProvider.notifier).refreshWallet();
+
       final categories = await _remoteDataSource.getCategories();
-      await fetchProducts(page: 1, filter: state.filter, categories: categories);
+      await fetchProducts(
+          page: 1, filter: state.filter, categories: categories);
+      fetchInventoryAndOrders();
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(isLoading: false, errorMessage: _cleanError(e));
     }
   }
 
-  Future<void> fetchProducts({required int page, required ShopFilter filter, List<ProductCategoryModel>? categories}) async {
+  Future<void> fetchProducts({
+    required int page,
+    required ShopFilter filter,
+    List<ProductCategoryModel>? categories,
+  }) async {
     try {
       final data = await _remoteDataSource.getProducts(
         page: page,
@@ -138,14 +174,54 @@ class ShopNotifier extends StateNotifier<ShopState> {
         currentPage: currentPage,
         totalPages: totalPages,
         hasMore: currentPage < totalPages,
+        clearError: true,
       );
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(isLoading: false, errorMessage: _cleanError(e));
+    }
+  }
+
+  Future<void> fetchInventoryAndOrders() async {
+    state = state.copyWith(isLoadingInventory: true);
+    try {
+      final invFuture = _remoteDataSource.getInventory().catchError((e) {
+        debugPrint('[ShopProvider] Lỗi khi tải Inventory: $e');
+        return <InventoryItemModel>[];
+      });
+      final ordersFuture =
+          _remoteDataSource.getOrders(page: 1, limit: 30).catchError((e) {
+        debugPrint('[ShopProvider] Lỗi khi tải Orders: $e');
+        return <OrderModel>[];
+      });
+
+      final results = await Future.wait([invFuture, ordersFuture]);
+      state = state.copyWith(
+        inventory: results[0] as List<InventoryItemModel>,
+        orders: results[1] as List<OrderModel>,
+        isLoadingInventory: false,
+      );
+    } catch (e) {
+      debugPrint('[ShopProvider] Lỗi tổng hợp fetchInventoryAndOrders: $e');
+      state = state.copyWith(isLoadingInventory: false);
+    }
+  }
+
+  Future<bool> toggleEquipItem(String inventoryItemId) async {
+    try {
+      final updated = await _remoteDataSource.toggleEquipItem(inventoryItemId);
+      final updatedList = state.inventory
+          .map((item) => item.id == inventoryItemId ? updated : item)
+          .toList();
+      state = state.copyWith(inventory: updatedList, clearError: true);
+      return true;
+    } catch (e) {
+      state = state.copyWith(errorMessage: _cleanError(e));
+      return false;
     }
   }
 
   Future<void> setFilter(ShopFilter newFilter) async {
-    state = state.copyWith(isLoading: true, filter: newFilter);
+    state = state.copyWith(isLoading: true, filter: newFilter, clearError: true);
     await fetchProducts(page: 1, filter: newFilter);
   }
 
@@ -180,23 +256,130 @@ class ShopNotifier extends StateNotifier<ShopState> {
         hasMore: nextPage < totalPages,
       );
     } catch (e) {
-      state = state.copyWith(isLoadingMore: false, errorMessage: e.toString());
+      state = state.copyWith(
+          isLoadingMore: false, errorMessage: _cleanError(e));
     }
   }
 
+  /// Mua vật phẩm trong Shop và trừ Token
   Future<bool> purchaseItem(String productId, int quantity) async {
+    state = state.copyWith(clearError: true, clearPurchaseMessage: true);
+
+    if (quantity <= 0) {
+      state = state.copyWith(errorMessage: 'Số lượng mua phải lớn hơn 0');
+      return false;
+    }
+
+    // Tìm thông tin sản phẩm trong state để kiểm tra nhanh số dư và tồn kho
+    final productIndex = state.products.indexWhere((p) => p.id == productId);
+    final product = productIndex >= 0 ? state.products[productIndex] : null;
+
+    if (product != null) {
+      if (product.isOutOfStock) {
+        state = state.copyWith(
+            errorMessage: 'Sản phẩm "${product.name}" hiện đã hết hàng');
+        return false;
+      }
+      if (!product.isUnlimitedStock && product.stock < quantity) {
+        state = state.copyWith(
+            errorMessage:
+                'Sản phẩm "${product.name}" chỉ còn ${product.stock} cái trong kho');
+        return false;
+      }
+
+      final totalCost = product.discountedPrice * quantity;
+      final walletState = _ref.read(walletProvider);
+      final userBalance = _ref.read(currentUserProvider)?.tokenBalance ?? 0;
+      final currentBalance =
+          walletState.balance > 0 ? walletState.balance : userBalance;
+
+      if (currentBalance < totalCost) {
+        state = state.copyWith(
+          errorMessage:
+              'Số dư Token không đủ! Cần $totalCost 🪙 nhưng bạn hiện có $currentBalance 🪙.',
+        );
+        return false;
+      }
+    }
+
     try {
-      await _remoteDataSource.purchaseItem(productId, quantity);
-      
-      // Refresh wallet from Module 1 and user info
+      if (kUseMock && product != null) {
+        final totalCost = product.discountedPrice * quantity;
+        _ref.read(walletProvider.notifier).recordPurchaseDeduction(
+              deductedTokens: totalCost,
+              itemSummary: '${product.name} (x$quantity)',
+            );
+        if (!product.isUnlimitedStock) {
+          final updatedProducts = [...state.products];
+          updatedProducts[productIndex] =
+              product.copyWith(stock: product.stock - quantity);
+          state = state.copyWith(
+            products: updatedProducts,
+            lastPurchaseMessage:
+                'Mua thành công ${product.name} (x$quantity)! Đã trừ $totalCost 🪙.',
+          );
+        }
+        return true;
+      }
+
+      final result = await _remoteDataSource.purchaseItem(productId, quantity);
+
+      final deductedTokens = (result['deductedTokens'] as num?)?.toInt() ??
+          (product != null ? product.discountedPrice * quantity : 0);
+      final updatedServerBalance = (result['walletBalance'] as num?)?.toInt();
+
+      TokenTransactionModel? serverTx;
+      if (result['transaction'] is Map<String, dynamic>) {
+        serverTx = TokenTransactionModel.fromJson(
+            result['transaction'] as Map<String, dynamic>);
+      }
+
+      final itemName = product?.name ?? 'Vật phẩm';
+
+      // 1. Trừ Token ngay lập tức trong WalletProvider và AuthProvider
+      _ref.read(walletProvider.notifier).recordPurchaseDeduction(
+            deductedTokens: deductedTokens,
+            itemSummary: '$itemName (x$quantity)',
+            updatedServerBalance: updatedServerBalance,
+            serverTransaction: serverTx,
+          );
+
+      // 2. Cập nhật tồn kho sản phẩm ngay lập tức trên UI nếu có giới hạn tồn kho
+      if (product != null && !product.isUnlimitedStock && productIndex >= 0) {
+        final updatedProducts = [...state.products];
+        updatedProducts[productIndex] = product.copyWith(
+          stock: (product.stock - quantity).clamp(0, 999999),
+        );
+        state = state.copyWith(products: updatedProducts);
+      }
+
+      state = state.copyWith(
+        lastPurchaseMessage:
+            'Mua thành công $itemName (x$quantity)! Đã trừ $deductedTokens 🪙.',
+      );
+
+      // Cập nhật nhanh kho đồ từ server response nếu có
+      if (result['inventoryItems'] is List) {
+        final serverInv = (result['inventoryItems'] as List)
+            .map((e) => e is Map
+                ? InventoryItemModel.fromJson(Map<String, dynamic>.from(e))
+                : null)
+            .whereType<InventoryItemModel>()
+            .toList();
+        if (serverInv.isNotEmpty) {
+          state = state.copyWith(inventory: serverInv);
+        }
+      }
+
+      // 3. Đồng bộ lại dữ liệu chuẩn từ Server (Ví, User, Danh sách sản phẩm, Kho đồ & Đơn hàng)
       _ref.read(walletProvider.notifier).refreshWallet();
       _ref.read(authProvider.notifier).refreshUser();
-      
-      // Refresh product stock list
       await fetchProducts(page: 1, filter: state.filter);
+      fetchInventoryAndOrders();
+
       return true;
     } catch (e) {
-      state = state.copyWith(errorMessage: e.toString());
+      state = state.copyWith(errorMessage: _cleanError(e));
       return false;
     }
   }

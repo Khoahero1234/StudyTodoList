@@ -1,11 +1,17 @@
-﻿const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const walletService = require('../services/walletService');
 const petService = require('../services/petService');
+const missionService = require('../services/missionService');
 
 exports.getTasks = async (req, res) => {
     try {
         const { status, priority, search, categoryId, page = 1, pageSize = 20 } = req.query;
+
+        // Tự động tạo các task học tập mẫu nếu tài khoản mới chưa có task nào
+        if (!status && !priority && !search && !categoryId && Number(page) === 1) {
+            await missionService.ensureDailyStudyTasks(req.user.id, false);
+        }
 
         // Map lowercase flutter values to Prisma UPPERCASE enum
         const statusMap = { pending: 'PENDING', in_progress: 'IN_PROGRESS', inprogress: 'IN_PROGRESS', completed: 'COMPLETED', cancelled: 'CANCELLED' };
@@ -62,7 +68,11 @@ exports.getTaskById = async (req, res) => {
 
 exports.createTask = async (req, res) => {
     try {
-        const { title, description, priority, dueDate, dueTime, categoryId, tags, estimatedMinutes, isRecurring, recurringPattern } = req.body;
+        const {
+            title, description, priority, dueDate, dueTime,
+            categoryId, tags, estimatedMinutes, isRecurring,
+            recurringPattern, tokenReward, xpReward
+        } = req.body;
 
         const task = await prisma.task.create({
             data: {
@@ -71,15 +81,15 @@ exports.createTask = async (req, res) => {
                 description,
                 priority: priority ? priority.toUpperCase() : 'MEDIUM',
                 status: 'PENDING',
-                dueDate: dueDate ? new Date(dueDate) : null,
+                dueDate: dueDate ? new Date(dueDate) : new Date(),
                 startTime: dueTime || null,
-                categoryId,
+                categoryId: categoryId || null,
                 tags: tags || [],
-                estimatedMinutes: estimatedMinutes || 0,
+                estimatedMinutes: estimatedMinutes || 20,
                 isRecurring: isRecurring || false,
                 recurringPattern,
-                tokenReward: tokenReward || 10,
-                xpReward: xpReward || 15
+                tokenReward: tokenReward || 15,
+                xpReward: xpReward || 20
             },
             include: { subTasks: true, category: true }
         });
@@ -90,6 +100,59 @@ exports.createTask = async (req, res) => {
     }
 };
 
+async function handleTaskCompletionRewards(userId, task) {
+    const tokenAmount = task.tokenReward || 15;
+    const xpAmount = task.xpReward || 20;
+
+    const taskRefId = `task:${task.id}`;
+    let alreadyAwarded = false;
+
+    if (tokenAmount > 0) {
+        const result = await walletService.adjustBalance(
+            userId,
+            tokenAmount,
+            'REWARD',
+            `Hoàn thành công việc: ${task.title}`,
+            taskRefId
+        );
+        alreadyAwarded = Boolean(result && result.alreadyAwarded);
+    }
+
+    if (!alreadyAwarded) {
+        if (xpAmount > 0) {
+            try {
+                await petService.gainXp(userId, xpAmount);
+            } catch (_) {}
+        }
+
+        // Cập nhật thống kê ngày (tasksCompleted + focusMinutes)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        await prisma.productivityStatistic.upsert({
+            where: {
+                userId_date: {
+                    userId,
+                    date: today
+                }
+            },
+            update: {
+                tasksCompleted: { increment: 1 },
+                focusMinutes: { increment: task.estimatedMinutes || 15 }
+            },
+            create: {
+                userId,
+                date: today,
+                tasksCompleted: 1,
+                focusMinutes: task.estimatedMinutes || 15
+            }
+        });
+    }
+
+    // Tự động kiểm tra và cộng thưởng các nhiệm vụ tự động hàng ngày (Daily Automated Missions)
+    const missionResult = await missionService.evaluateAndAutoRewardMissions(userId);
+    return missionResult;
+}
+
 exports.updateTask = async (req, res) => {
     try {
         const { id } = req.params;
@@ -97,7 +160,6 @@ exports.updateTask = async (req, res) => {
 
         if (!existingTask) return res.status(404).json({ success: false, message: 'Task not found' });
 
-        // Chi lay cac field hop le cua Prisma Task model (tranh unknown field error)
         const { title, description, priority, status, dueDate, dueTime, categoryId, projectId, tags, estimatedMinutes, isRecurring, recurringPattern } = req.body;
 
         const dataToUpdate = {};
@@ -106,7 +168,7 @@ exports.updateTask = async (req, res) => {
         if (priority !== undefined) dataToUpdate.priority = priority.toUpperCase();
         if (status !== undefined) dataToUpdate.status = status.toUpperCase();
         if (dueDate !== undefined) dataToUpdate.dueDate = dueDate ? new Date(dueDate) : null;
-        if (dueTime !== undefined) dataToUpdate.startTime = dueTime || null; // Flutter gui "dueTime", Prisma luu "startTime"
+        if (dueTime !== undefined) dataToUpdate.startTime = dueTime || null;
         if (categoryId !== undefined) dataToUpdate.categoryId = categoryId || null;
         if (projectId !== undefined) dataToUpdate.projectId = projectId || null;
         if (tags !== undefined) dataToUpdate.tags = tags;
@@ -114,10 +176,12 @@ exports.updateTask = async (req, res) => {
         if (isRecurring !== undefined) dataToUpdate.isRecurring = isRecurring;
         if (recurringPattern !== undefined) dataToUpdate.recurringPattern = recurringPattern || null;
 
-        // Xu ly completedAt khi doi status
-        if (status === 'COMPLETED' && existingTask.status !== 'COMPLETED') {
+        const normalizedStatus = status ? status.toUpperCase() : undefined;
+        const isNowCompleted = normalizedStatus === 'COMPLETED' && existingTask.status !== 'COMPLETED';
+
+        if (isNowCompleted) {
             dataToUpdate.completedAt = new Date();
-        } else if (status && status !== 'COMPLETED') {
+        } else if (normalizedStatus && normalizedStatus !== 'COMPLETED') {
             dataToUpdate.completedAt = null;
         }
 
@@ -127,26 +191,16 @@ exports.updateTask = async (req, res) => {
             include: { subTasks: true, category: true }
         });
 
-        // Award token and XP rewards if task transitioned to completed
+        let missionEvaluation = null;
         if (isNowCompleted) {
-            const tokenAmount = task.tokenReward || 10;
-            const xpAmount = task.xpReward || 15;
-
-            if (tokenAmount > 0) {
-                await walletService.adjustBalance(
-                    req.user.id,
-                    tokenAmount,
-                    'EARNED',
-                    `Completed task: ${task.title}`,
-                    task.id
-                );
-            }
-            if (xpAmount > 0) {
-                await petService.gainXp(req.user.id, xpAmount);
-            }
+            missionEvaluation = await handleTaskCompletionRewards(req.user.id, task);
         }
 
-        res.json({ success: true, data: task });
+        res.json({
+            success: true,
+            data: task,
+            missionEvaluation
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -174,7 +228,7 @@ exports.completeTask = async (req, res) => {
 
         if (!existingTask) return res.status(404).json({ success: false, message: 'Task not found' });
 
-        if (existingTask.status === 'completed') {
+        if (existingTask.status === 'COMPLETED') {
             return res.json({ success: true, data: existingTask, message: 'Task already completed' });
         }
 
@@ -187,26 +241,14 @@ exports.completeTask = async (req, res) => {
             include: { subTasks: true, category: true }
         });
 
-        // Award token and XP rewards via walletService & petService
-        const tokenAmount = task.tokenReward || 10;
-        const xpAmount = task.xpReward || 15;
+        const missionEvaluation = await handleTaskCompletionRewards(req.user.id, task);
 
-        if (tokenAmount > 0) {
-            await walletService.adjustBalance(
-                req.user.id,
-                tokenAmount,
-                'EARNED',
-                `Completed task: ${task.title}`,
-                task.id
-            );
-        }
-        if (xpAmount > 0) {
-            await petService.gainXp(req.user.id, xpAmount);
-        }
-
-        res.json({ success: true, data: task });
+        res.json({
+            success: true,
+            data: task,
+            missionEvaluation
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
 };
-

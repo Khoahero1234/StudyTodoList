@@ -15,30 +15,61 @@ const generateTokens = (user) => {
     return { accessToken, refreshToken };
 };
 
+const formatUserResponse = (user) => {
+    const isPremiumActive = Boolean(
+        user.premiumSub &&
+        user.premiumSub.status === 'ACTIVE' &&
+        new Date(user.premiumSub.endDate) > new Date()
+    );
+
+    return {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+        role: user.role,
+        isActive: user.isActive,
+        emailVerified: user.isVerified,
+        currentStreak: user.loginStreak?.currentStreak ?? 0,
+        longestStreak: user.loginStreak?.longestStreak ?? 0,
+        lastLoginDate: user.loginStreak?.lastLoginDate ?? null,
+        tokenBalance: user.wallet?.balance ?? 0,
+        isPremium: isPremiumActive,
+        xp: user.xp ?? 0,
+        level: user.level ?? 1,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+    };
+};
+
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findUnique({
+            where: { email },
+            include: {
+                wallet: true,
+                loginStreak: true,
+                premiumSub: true
+            }
+        });
         
         if (!user || !(await bcrypt.compare(password, user.password))) {
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
         }
 
+        // Ensure user has a wallet initialized
+        if (!user.wallet) {
+            user.wallet = await prisma.wallet.create({
+                data: { userId: user.id, balance: 0 }
+            });
+        }
+
         const { accessToken, refreshToken } = generateTokens(user);
 
         res.json({
-            user: {
-                id: user.id,
-                email: user.email,
-                username: user.username,
-                role: user.role,
-                isActive: user.isActive,
-                currentStreak: user.currentStreak,
-                tokenBalance: user.tokenBalance,
-                isPremium: user.isPremium,
-                createdAt: user.createdAt,
-                updatedAt: user.updatedAt
-            },
+            user: formatUserResponse(user),
             accessToken,
             refreshToken
         });
@@ -62,25 +93,29 @@ exports.register = async (req, res) => {
             data: {
                 email,
                 username,
-                password: hashedPassword
+                password: hashedPassword,
+                wallet: {
+                    create: { balance: 0 }
+                },
+                loginStreak: {
+                    create: {
+                        currentStreak: 1,
+                        longestStreak: 1,
+                        lastLoginDate: new Date()
+                    }
+                }
+            },
+            include: {
+                wallet: true,
+                loginStreak: true,
+                premiumSub: true
             }
         });
 
         const { accessToken, refreshToken } = generateTokens(newUser);
 
         res.json({
-            user: {
-                id: newUser.id,
-                email: newUser.email,
-                username: newUser.username,
-                role: newUser.role,
-                isActive: newUser.isActive,
-                currentStreak: newUser.currentStreak,
-                tokenBalance: newUser.tokenBalance,
-                isPremium: newUser.isPremium,
-                createdAt: newUser.createdAt,
-                updatedAt: newUser.updatedAt
-            },
+            user: formatUserResponse(newUser),
             accessToken,
             refreshToken
         });
@@ -115,21 +150,23 @@ exports.refreshToken = async (req, res) => {
 
 exports.getCurrentUser = async (req, res) => {
     try {
-        const user = await prisma.user.findUnique({ where: { id: req.user.id } });
-        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-        
-        res.json({
-            id: user.id,
-            email: user.email,
-            username: user.username,
-            role: user.role,
-            isActive: user.isActive,
-            currentStreak: user.currentStreak,
-            tokenBalance: user.tokenBalance,
-            isPremium: user.isPremium,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt
+        const user = await prisma.user.findUnique({
+            where: { id: req.user.id },
+            include: {
+                wallet: true,
+                loginStreak: true,
+                premiumSub: true
+            }
         });
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+        if (!user.wallet) {
+            user.wallet = await prisma.wallet.create({
+                data: { userId: user.id, balance: 0 }
+            });
+        }
+        
+        res.json(formatUserResponse(user));
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }

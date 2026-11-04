@@ -21,11 +21,6 @@ async function getOrCreateLoginStreak(userId) {
                 lastLoginDate: new Date()
             }
         });
-
-        await prisma.user.update({
-            where: { id: userId },
-            data: { currentStreak: 1 }
-        });
     } else {
         const now = new Date();
         now.setHours(0, 0, 0, 0);
@@ -53,11 +48,6 @@ async function getOrCreateLoginStreak(userId) {
                     longestStreak: newLongest,
                     lastLoginDate: new Date()
                 }
-            });
-
-            await prisma.user.update({
-                where: { id: userId },
-                data: { currentStreak: newStreak }
             });
         }
     }
@@ -89,9 +79,10 @@ async function checkRewardEligibility(userId, rewardId) {
     }
 
     const streak = await getOrCreateLoginStreak(userId);
+    const requiredStreak = reward.streakDay ?? reward.requiredStreak ?? 1;
 
-    if (streak.currentStreak < reward.requiredStreak) {
-        throw new Error(`Required login streak of ${reward.requiredStreak} day(s) not met. Your current streak is ${streak.currentStreak} day(s).`);
+    if (streak.currentStreak < requiredStreak) {
+        throw new Error(`Required login streak of ${requiredStreak} day(s) not met. Your current streak is ${streak.currentStreak} day(s).`);
     }
 
     return { reward, streak };

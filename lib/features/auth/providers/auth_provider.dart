@@ -177,6 +177,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> refreshUser() async {
+    if (kUseMock) return;
     try {
       final user = await _repository!.getMe();
       state = AuthState.authenticated(user);
@@ -185,8 +186,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   void addTokens(int amount) {
     if (state.user != null) {
+      final newBalance = (state.user!.tokenBalance + amount).clamp(0, 999999999);
       final updatedUser = state.user!.copyWith(
-        tokenBalance: state.user!.tokenBalance + amount,
+        tokenBalance: newBalance,
+      );
+      state = AuthState.authenticated(updatedUser);
+    }
+  }
+
+  void deductTokens(int amount) {
+    addTokens(-amount);
+  }
+
+  void setTokenBalance(int newBalance) {
+    if (state.user != null && state.user!.tokenBalance != newBalance) {
+      final updatedUser = state.user!.copyWith(
+        tokenBalance: newBalance,
       );
       state = AuthState.authenticated(updatedUser);
     }

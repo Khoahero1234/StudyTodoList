@@ -1,5 +1,7 @@
 ﻿const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const walletService = require('../services/walletService');
+const petService = require('../services/petService');
 
 exports.getTasks = async (req, res) => {
     try {
@@ -76,8 +78,8 @@ exports.createTask = async (req, res) => {
                 estimatedMinutes: estimatedMinutes || 0,
                 isRecurring: isRecurring || false,
                 recurringPattern,
-                tokenReward: 5,
-                xpReward: 10
+                tokenReward: tokenReward || 10,
+                xpReward: xpReward || 15
             },
             include: { subTasks: true, category: true }
         });
@@ -125,6 +127,25 @@ exports.updateTask = async (req, res) => {
             include: { subTasks: true, category: true }
         });
 
+        // Award token and XP rewards if task transitioned to completed
+        if (isNowCompleted) {
+            const tokenAmount = task.tokenReward || 10;
+            const xpAmount = task.xpReward || 15;
+
+            if (tokenAmount > 0) {
+                await walletService.adjustBalance(
+                    req.user.id,
+                    tokenAmount,
+                    'EARNED',
+                    `Completed task: ${task.title}`,
+                    task.id
+                );
+            }
+            if (xpAmount > 0) {
+                await petService.gainXp(req.user.id, xpAmount);
+            }
+        }
+
         res.json({ success: true, data: task });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -153,6 +174,10 @@ exports.completeTask = async (req, res) => {
 
         if (!existingTask) return res.status(404).json({ success: false, message: 'Task not found' });
 
+        if (existingTask.status === 'completed') {
+            return res.json({ success: true, data: existingTask, message: 'Task already completed' });
+        }
+
         const task = await prisma.task.update({
             where: { id },
             data: {
@@ -161,6 +186,23 @@ exports.completeTask = async (req, res) => {
             },
             include: { subTasks: true, category: true }
         });
+
+        // Award token and XP rewards via walletService & petService
+        const tokenAmount = task.tokenReward || 10;
+        const xpAmount = task.xpReward || 15;
+
+        if (tokenAmount > 0) {
+            await walletService.adjustBalance(
+                req.user.id,
+                tokenAmount,
+                'EARNED',
+                `Completed task: ${task.title}`,
+                task.id
+            );
+        }
+        if (xpAmount > 0) {
+            await petService.gainXp(req.user.id, xpAmount);
+        }
 
         res.json({ success: true, data: task });
     } catch (error) {

@@ -16,6 +16,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@prisma/client": "^6.19.3",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^6.19.3",
     "bcrypt": "^6.0.0",
@@ -28,7 +29,9 @@
     "node-fetch": "^2.7.0",
     "openai": "^7.39.0",
     "pg": "^8.23.1",
-    "socket.io": "^4.8.4"
+    "socket.io": "^4.8.4",
+    "node-fetch": "^2.7.0",
+    "openai": "^7.39.0"
   },
   "devDependencies": {
     "eslint": "^9.0.0",

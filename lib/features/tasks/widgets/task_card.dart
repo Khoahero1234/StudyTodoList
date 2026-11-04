@@ -45,7 +45,6 @@ class _TaskCardState extends State<TaskCard> {
   @override
   Widget build(BuildContext context) {
     final task = widget.task;
-    final isCompleted = task.isCompleted;
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressing = true),

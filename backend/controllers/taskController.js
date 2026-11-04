@@ -7,16 +7,19 @@ exports.getTasks = async (req, res) => {
     try {
         const { status, priority, search, categoryId, page = 1, pageSize = 20 } = req.query;
 
+        // Map lowercase flutter values to Prisma UPPERCASE enum
+        const statusMap = { pending: 'PENDING', in_progress: 'IN_PROGRESS', inprogress: 'IN_PROGRESS', completed: 'COMPLETED', cancelled: 'CANCELLED' };
+        const priorityMap = { low: 'LOW', medium: 'MEDIUM', high: 'HIGH', urgent: 'URGENT' };
         const where = { userId: req.user.id };
-        if (status) where.status = status;
-        if (priority) where.priority = priority;
+        if (status) where.status = statusMap[status.toLowerCase()] || status.toUpperCase();
+        if (priority) where.priority = priorityMap[priority.toLowerCase()] || priority.toUpperCase();
         if (categoryId) where.categoryId = categoryId;
         if (search) {
             where.title = { contains: search, mode: 'insensitive' };
         }
 
         const skip = (parseInt(page) - 1) * parseInt(pageSize);
-        
+
         const [tasks, total] = await Promise.all([
             prisma.task.findMany({
                 where,
@@ -48,9 +51,9 @@ exports.getTaskById = async (req, res) => {
             where: { id: req.params.id, userId: req.user.id },
             include: { subTasks: true, category: true }
         });
-        
+
         if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
-        
+
         res.json({ success: true, data: task });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -59,8 +62,8 @@ exports.getTaskById = async (req, res) => {
 
 exports.createTask = async (req, res) => {
     try {
-        const { title, description, priority, dueDate, dueTime, categoryId, tags, estimatedMinutes, isRecurring, recurringPattern, tokenReward, xpReward } = req.body;
-        
+        const { title, description, priority, dueDate, dueTime, categoryId, tags, estimatedMinutes, isRecurring, recurringPattern } = req.body;
+
         const task = await prisma.task.create({
             data: {
                 userId: req.user.id,
@@ -91,7 +94,7 @@ exports.updateTask = async (req, res) => {
     try {
         const { id } = req.params;
         const existingTask = await prisma.task.findFirst({ where: { id, userId: req.user.id } });
-        
+
         if (!existingTask) return res.status(404).json({ success: false, message: 'Task not found' });
 
         // Chi lay cac field hop le cua Prisma Task model (tranh unknown field error)
@@ -153,7 +156,7 @@ exports.deleteTask = async (req, res) => {
     try {
         const { id } = req.params;
         const task = await prisma.task.findFirst({ where: { id, userId: req.user.id } });
-        
+
         if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
 
         await prisma.task.delete({ where: { id } });
@@ -178,7 +181,7 @@ exports.completeTask = async (req, res) => {
         const task = await prisma.task.update({
             where: { id },
             data: {
-                status: 'completed',
+                status: 'COMPLETED',
                 completedAt: new Date()
             },
             include: { subTasks: true, category: true }
@@ -206,3 +209,4 @@ exports.completeTask = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+

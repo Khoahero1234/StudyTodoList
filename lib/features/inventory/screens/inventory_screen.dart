@@ -204,7 +204,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       if (product?.description != null) ...[
                         const SizedBox(height: 2),
                         Text(
-                          product!.description!,
+                          product?.description ?? '',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: AppTextStyles.bodySmall

@@ -26,7 +26,8 @@
     "node-fetch": "^2.7.0",
     "openai": "^7.39.0",
     "pg": "^8.23.1",
-    "socket.io": "^4.8.4"
+    "socket.io": "^4.8.4",
+    "vnpay": "^2.5.0"
   },
   "devDependencies": {
     "eslint": "^9.0.0",

@@ -12,6 +12,7 @@ const walletRoutes = require('./routes/walletRoutes');
 const shopRoutes = require('./routes/shopRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const rewardRoutes = require('./routes/rewardRoutes');
+const vnpayRoutes = require('./routes/vnpayRoutes');
 const friendRoutes = require('./routes/friendRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const studyRoomRoutes = require('./routes/studyRoomRoutes');
@@ -157,6 +158,8 @@ app.use('/api/shop', shopRoutes);
 app.use('/api/v1/orders', orderRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/v1/rewards', rewardRoutes);
+app.use('/api/v1/vnpay', vnpayRoutes);
+app.use('/api/vnpay', vnpayRoutes);
 app.use('/api/rewards', rewardRoutes);
 
 // Global Error Handler

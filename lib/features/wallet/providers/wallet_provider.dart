@@ -98,7 +98,8 @@ class WalletNotifier extends StateNotifier<WalletState> {
       final txData = await _remoteDataSource.getTransactions(page: 1, limit: 20);
       final rawList = txData['transactions'] as List<dynamic>? ?? [];
       final transactions = rawList
-          .map((e) => TokenTransactionModel.fromJson(e as Map<String, dynamic>))
+          .whereType<Map<String, dynamic>>()
+          .map((e) => TokenTransactionModel.fromJson(e))
           .toList();
 
       final pagination = txData['pagination'] as Map<String, dynamic>? ?? {};

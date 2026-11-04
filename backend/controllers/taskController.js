@@ -177,6 +177,9 @@ exports.updateTask = async (req, res) => {
         if (recurringPattern !== undefined) dataToUpdate.recurringPattern = recurringPattern || null;
 
         const normalizedStatus = status ? status.toUpperCase() : undefined;
+        if (existingTask.status === 'COMPLETED' && normalizedStatus && normalizedStatus !== 'COMPLETED') {
+            return res.status(400).json({ success: false, message: 'Nhiệm vụ đã hoàn thành không thể chuyển về trạng thái chưa hoàn thành.' });
+        }
         const isNowCompleted = normalizedStatus === 'COMPLETED' && existingTask.status !== 'COMPLETED';
 
         if (isNowCompleted) {

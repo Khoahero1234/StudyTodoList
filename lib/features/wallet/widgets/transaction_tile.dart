@@ -6,7 +6,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../models/token_transaction_model.dart';
 
 class TransactionTile extends StatelessWidget {
-  final TokenTransactionModel transaction;
+  final TokenTransactionModel? transaction;
 
   const TransactionTile({
     super.key,
@@ -15,16 +15,21 @@ class TransactionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isPositive = transaction.amount >= 0;
+    if (transaction == null) return const SizedBox.shrink();
+
+    final tx = transaction!;
+    final isPositive = tx.amount >= 0;
     final amountPrefix = isPositive ? '+' : '';
     final amountColor = isPositive ? Colors.greenAccent : Colors.redAccent;
+    final desc = tx.description;
+    final displayTitle = (desc != null && desc.isNotEmpty) ? desc : (tx.type.isNotEmpty ? tx.type : 'Transaction');
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+      margin: const EdgeInsets.symmetric(vertical: 4),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.surfaceDark,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.borderDark),
       ),
       child: Row(
@@ -32,7 +37,7 @@ class TransactionTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: amountColor.withOpacity(0.1),
+              color: amountColor.withOpacity(0.12),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -47,9 +52,7 @@ class TransactionTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  transaction.description?.isNotEmpty == true
-                      ? transaction.description!
-                      : transaction.type,
+                  displayTitle,
                   style: AppTextStyles.bodyLarge.copyWith(
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary,
@@ -57,7 +60,7 @@ class TransactionTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _formatDate(transaction.createdAt),
+                  _formatDate(tx.createdAt),
                   style: AppTextStyles.bodySmall.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -66,7 +69,7 @@ class TransactionTile extends StatelessWidget {
             ),
           ),
           Text(
-            '$amountPrefix${transaction.amount} 🪙',
+            '$amountPrefix${tx.amount} 🪙',
             style: AppTextStyles.bodyLarge.copyWith(
               fontWeight: FontWeight.bold,
               color: amountColor,
@@ -77,7 +80,8 @@ class TransactionTile extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  String _formatDate(DateTime? date) {
+    if (date == null) return '';
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 }

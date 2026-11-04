@@ -441,9 +441,9 @@ class TaskFormNotifier extends StateNotifier<TaskFormState> {
       TaskModel task;
       if (kUseMock) {
         final data = <String, dynamic>{};
-        if (title != null) data['title'] = title;
+        data['title'] = title;
         if (description != null) data['description'] = description;
-        if (priority != null) data['priority'] = priority.value;
+        data['priority'] = priority.value;
         // if (status != null) data['status'] = status.value;
         if (dueDate != null) data['dueDate'] = dueDate.toIso8601String();
         if (dueTime != null) data['dueTime'] = dueTime;

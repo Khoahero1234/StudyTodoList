@@ -299,7 +299,6 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
               )
             : Text('Tasks', style: AppTextStyles.titleLarge),
         backgroundColor: AppColors.backgroundDark,
-        elevation: 0,
         actions: [
           IconButton(
             icon: Icon(_showSearch ? Icons.close_rounded : Icons.search_rounded),
@@ -311,6 +310,15 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
                   _onSearchChanged('');
                 }
               });
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.add_rounded),
+            onPressed: () async {
+              final newTask = await context.push<TaskModel>(AppRoutes.taskNew);
+              if (newTask != null) {
+                ref.read(taskListProvider.notifier).addTask(newTask);
+              }
             },
           ),
           Stack(
@@ -384,7 +392,6 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
               ),
             ),
           ),
-
           // Status Tabs
           _buildStatusTabs(filter),
 
@@ -411,7 +418,10 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          await context.push<TaskModel>(AppRoutes.taskNew);
+          final newTask = await context.push<TaskModel>(AppRoutes.taskNew);
+          if (newTask != null) {
+            ref.read(taskListProvider.notifier).addTask(newTask);
+          }
           _fetchInitialTasks();
         },
         backgroundColor: AppColors.primary,

@@ -106,4 +106,43 @@ class AuthRemoteDataSource {
       throw NetworkException.fromDioError(e);
     }
   }
+
+  Future<UserModel> updateProfile({
+    String? displayName,
+    String? username,
+    String? bio,
+    String? avatarUrl,
+  }) async {
+    try {
+      final response = await _dioClient.put(
+        '/api/auth/profile',
+        data: {
+          if (displayName != null) 'displayName': displayName,
+          if (username != null) 'username': username,
+          if (bio != null) 'bio': bio,
+          if (avatarUrl != null) 'avatarUrl': avatarUrl,
+        },
+      );
+      return UserModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw NetworkException.fromDioError(e);
+    }
+  }
+
+  Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    try {
+      await _dioClient.put(
+        '/api/auth/change-password',
+        data: {
+          'oldPassword': oldPassword,
+          'newPassword': newPassword,
+        },
+      );
+    } on DioException catch (e) {
+      throw NetworkException.fromDioError(e);
+    }
+  }
 }

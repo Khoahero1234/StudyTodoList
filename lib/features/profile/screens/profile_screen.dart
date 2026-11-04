@@ -106,12 +106,12 @@ class ProfileScreen extends ConsumerWidget {
                     _MenuItem(
                       icon: Icons.person_outline_rounded,
                       label: 'Edit Profile',
-                      onTap: () {},
+                      onTap: () => _showEditProfileDialog(context, ref, user),
                     ),
                     _MenuItem(
                       icon: Icons.lock_outline_rounded,
                       label: 'Change Password',
-                      onTap: () {},
+                      onTap: () => _showChangePasswordDialog(context, ref),
                     ),
                     _MenuItem(
                       icon: Icons.notifications_outlined,
@@ -206,6 +206,115 @@ class ProfileScreen extends ConsumerWidget {
                 const SizedBox(height: 100),
               ]),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditProfileDialog(BuildContext context, WidgetRef ref, dynamic user) {
+    final usernameController = TextEditingController(text: user?.username ?? '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        title: Text('Edit Profile', style: AppTextStyles.titleMedium),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: usernameController,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                labelText: 'Username',
+                labelStyle: TextStyle(color: AppColors.textSecondary),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await ref.read(authProvider.notifier).updateProfile(
+                  username: usernameController.text.trim(),
+                );
+                if (ctx.mounted) Navigator.pop(ctx);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Profile updated successfully!')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: ${e.toString()}')),
+                  );
+                }
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showChangePasswordDialog(BuildContext context, WidgetRef ref) {
+    final oldPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surfaceDark,
+        title: Text('Change Password', style: AppTextStyles.titleMedium),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: oldPasswordController,
+              obscureText: true,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(labelText: 'Old Password'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: newPasswordController,
+              obscureText: true,
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(labelText: 'New Password'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await ref.read(authProvider.notifier).changePassword(
+                  oldPassword: oldPasswordController.text,
+                  newPassword: newPasswordController.text,
+                );
+                if (ctx.mounted) Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Password changed successfully!')),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: ${e.toString()}')),
+                );
+              }
+            },
+            child: const Text('Update'),
           ),
         ],
       ),
@@ -327,16 +436,16 @@ class _MenuSection extends StatelessWidget {
                 .asMap()
                 .entries
                 .map((e) => Column(
-                      children: [
-                        e.value,
-                        if (e.key < items.length - 1)
-                          const Divider(
-                            color: AppColors.borderDark,
-                            height: 1,
-                            indent: 52,
-                          ),
-                      ],
-                    ))
+              children: [
+                e.value,
+                if (e.key < items.length - 1)
+                  const Divider(
+                    color: AppColors.borderDark,
+                    height: 1,
+                    indent: 52,
+                  ),
+              ],
+            ))
                 .toList(),
           ),
         ),
@@ -360,13 +469,27 @@ class _MenuItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      onTap: onTap,
-      leading: Icon(icon, color: AppColors.textSecondary, size: 22),
-      title: Text(label, style: AppTextStyles.bodyMedium),
-      trailing:
-          trailing ?? const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted, size: 20),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Icon(icon, color: AppColors.textSecondary, size: 22),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(label, style: AppTextStyles.bodyMedium),
+              ),
+              trailing ??
+                  const Icon(Icons.chevron_right_rounded,
+                      color: AppColors.textMuted, size: 20),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

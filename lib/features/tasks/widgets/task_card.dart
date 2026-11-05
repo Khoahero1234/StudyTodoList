@@ -45,7 +45,6 @@ class _TaskCardState extends State<TaskCard> {
   @override
   Widget build(BuildContext context) {
     final task = widget.task;
-    final isCompleted = task.isCompleted;
 
     return GestureDetector(
       onTapDown: (_) => setState(() => _pressing = true),
@@ -130,9 +129,17 @@ class _TaskCardState extends State<TaskCard> {
           ),
           const SizedBox(width: 12),
 
-          // Checkbox
+          // Checkbox (Auto-complete indicator, non-interactive for manual completion)
           GestureDetector(
-            onTap: widget.onToggle,
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Tasks are completed automatically (via Pomodoro or subtasks)!'),
+                  duration: Duration(seconds: 2),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: 24,

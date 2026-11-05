@@ -5,7 +5,7 @@ import '../../models/user_model.dart';
 
 /// Flag để bật/tắt chế độ mock.
 /// Đặt thành false khi backend đã sẵn sàng.
-const bool kUseMock = true;
+const bool kUseMock = false;
 
 // ─── Mock User ───────────────────────────────────────────────────────────────
 
@@ -111,24 +111,6 @@ final mockTasks = <TaskModel>[
     xpReward: 10,
     createdAt: _now.subtract(const Duration(days: 1)),
     updatedAt: _now.subtract(const Duration(days: 1)),
-  ),
-  TaskModel(
-    id: 'task-005',
-    userId: 'mock-user-001',
-    title: 'Tập thể dục buổi sáng',
-    description: '30 phút cardio + stretching',
-    priority: TaskPriority.low,
-    status: TaskStatus.pending,
-    dueDate: _now.add(const Duration(days: 1)),
-    dueTime: '06:30',
-    tags: ['health', 'daily'],
-    isRecurring: true,
-    recurringPattern: 'daily',
-    estimatedMinutes: 30,
-    tokenReward: 5,
-    xpReward: 10,
-    createdAt: _now.subtract(const Duration(days: 7)),
-    updatedAt: _now,
   ),
   TaskModel(
     id: 'task-006',

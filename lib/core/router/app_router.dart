@@ -21,6 +21,8 @@ import '../../features/wallet/screens/wallet_screen.dart';
 import '../../features/premium/screens/premium_screen.dart';
 import '../../features/inventory/screens/inventory_screen.dart';
 import '../../features/study_room/screens/study_room_screen.dart';
+import '../../features/rewards/screens/reward_screen.dart';
+import '../../features/admin/screens/admin_dashboard_screen.dart';
 import '../../shared/widgets/main_scaffold.dart';
 
 // Route names
@@ -46,6 +48,8 @@ class AppRoutes {
   static const inventory = '/inventory';
   static const studyRooms = '/study-rooms';
   static const studyRoomDetail = '/study-rooms/:id';
+  static const rewards = '/rewards';
+  static const admin = '/admin';
 }
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -53,7 +57,7 @@ final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authNotifier = ValueNotifier<AuthStatus>(AuthStatus.initial);
-  
+
   ref.listen<AuthState>(authProvider, (previous, next) {
     authNotifier.value = next.status;
   });
@@ -65,18 +69,26 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: authNotifier,
     redirect: (context, state) {
       final status = ref.read(authProvider).status;
+      final isAdmin = ref.read(authProvider).user?.isAdmin ?? false;
       final location = state.uri.toString();
 
-      // Still initializing
-      if (status == AuthStatus.initial || status == AuthStatus.loading) {
+      // Only the initial state belongs on the splash screen. Loading can also
+      // happen during login, registration, or logout, so keep the current route.
+      if (status == AuthStatus.initial) {
         if (location != AppRoutes.splash) return AppRoutes.splash;
+        return null;
+      }
+
+      if (status == AuthStatus.loading) {
         return null;
       }
 
       final isAuthenticated = status == AuthStatus.authenticated;
 
       if (location == AppRoutes.splash) {
-        return isAuthenticated ? AppRoutes.home : AppRoutes.login;
+        return isAuthenticated
+            ? (isAdmin ? AppRoutes.admin : AppRoutes.home)
+            : AppRoutes.login;
       }
 
       final isAuthRoute = location == AppRoutes.login ||
@@ -88,7 +100,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       if (isAuthenticated && isAuthRoute) {
+        return isAdmin ? AppRoutes.admin : AppRoutes.home;
+      }
+
+      if (location == AppRoutes.admin && !isAdmin) {
         return AppRoutes.home;
+      }
+
+      if (isAdmin && location.startsWith(AppRoutes.home)) {
+        return AppRoutes.admin;
       }
 
       return null;
@@ -112,6 +132,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.forgotPassword,
         builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.admin,
+        builder: (context, state) => const AdminDashboardScreen(),
       ),
 
       // Shell route with bottom navigation
@@ -190,6 +214,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.studyRooms,
         builder: (context, state) => const StudyRoomScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.rewards,
+        builder: (context, state) => const RewardScreen(),
       ),
     ],
   );

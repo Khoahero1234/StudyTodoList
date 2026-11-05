@@ -7,14 +7,31 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../features/auth/providers/auth_provider.dart';
+import '../../../features/missions/providers/mission_provider.dart';
 import '../../../features/tasks/providers/task_provider.dart';
+import '../../../features/wallet/providers/wallet_provider.dart';
 import '../../../models/task_model.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(taskListProvider.notifier).loadTasks();
+      ref.read(missionProvider.notifier).loadMissions(silent: true);
+      ref.read(walletProvider.notifier).refreshWallet();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
 
     return Scaffold(
@@ -33,8 +50,8 @@ class HomeScreen extends ConsumerWidget {
                     children: [
                       Text(
                         '${AppDateUtils.greetingText()} 👋',
-                        style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textSecondary),
+                        style: AppTextStyles.bodySmall
+                            .copyWith(color: AppColors.textSecondary),
                       ),
                       Text(
                         user?.username ?? 'User',
@@ -45,7 +62,7 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 // Notification bell
                 IconButton(
-                  onPressed: () {},
+                  onPressed: () => context.push(AppRoutes.pet),
                   icon: Stack(
                     children: [
                       const Icon(Icons.notifications_outlined,
@@ -99,8 +116,8 @@ class HomeScreen extends ConsumerWidget {
                 _StatsRow(user: user),
                 const SizedBox(height: 20),
 
-                // AI recommendation
-                _AIRecommendationCard(),
+                // Automated Missions Banner Card
+                _AutomatedMissionBannerCard(),
                 const SizedBox(height: 20),
 
                 // Today's Tasks header
@@ -120,7 +137,7 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
 
-                // Task items (demo)
+                // Task items
                 _DemoTaskList(),
                 const SizedBox(height: 20),
 
@@ -142,15 +159,18 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-class _ProgressCard extends StatelessWidget {
+class _ProgressCard extends ConsumerWidget {
   final dynamic user;
   const _ProgressCard({this.user});
 
   @override
-  Widget build(BuildContext context) {
-    const completedTasks = 6;
-    const totalTasks = 8;
-    const progress = completedTasks / totalTasks;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final allTasks = ref.watch(taskListProvider).tasks;
+    final todayTasks = ref.watch(todayTasksProvider);
+    final tasksToCount = todayTasks.isNotEmpty ? todayTasks : allTasks;
+    final totalTasks = tasksToCount.length;
+    final completedTasks = tasksToCount.where((t) => t.isCompleted).length;
+    final progress = totalTasks > 0 ? completedTasks / totalTasks : 0.0;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -159,7 +179,7 @@ class _ProgressCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withOpacity(0.3),
+            color: AppColors.primary.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -173,13 +193,11 @@ class _ProgressCard extends StatelessWidget {
             children: [
               Text(
                 "Today's Progress",
-                style: AppTextStyles.titleSmall
-                    .copyWith(color: Colors.white70),
+                style: AppTextStyles.titleSmall.copyWith(color: Colors.white70),
               ),
               Text(
                 '${(progress * 100).toInt()}%',
-                style: AppTextStyles.titleLarge
-                    .copyWith(color: Colors.white),
+                style: AppTextStyles.titleLarge.copyWith(color: Colors.white),
               ),
             ],
           ),
@@ -189,8 +207,7 @@ class _ProgressCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               backgroundColor: Colors.white24,
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(Colors.white),
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
               minHeight: 8,
             ),
           ),
@@ -205,12 +222,16 @@ class _ProgressCard extends StatelessWidget {
   }
 }
 
-class _StatsRow extends StatelessWidget {
+class _StatsRow extends ConsumerWidget {
   final dynamic user;
   const _StatsRow({this.user});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final walletBalance = ref.watch(walletProvider).balance;
+    final displayedTokens =
+        walletBalance > 0 ? walletBalance : (user?.tokenBalance ?? 0);
+
     return Row(
       children: [
         Expanded(
@@ -224,12 +245,15 @@ class _StatsRow extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _StatChip(
-            icon: Icons.monetization_on_rounded,
-            iconColor: AppColors.gold,
-            value: '${user?.tokenBalance ?? 0}',
-            label: 'Tokens',
-            gradient: AppColors.premiumGradient,
+          child: GestureDetector(
+            onTap: () => context.push(AppRoutes.wallet),
+            child: _StatChip(
+              icon: Icons.monetization_on_rounded,
+              iconColor: AppColors.gold,
+              value: '$displayedTokens',
+              label: 'Tokens',
+              gradient: AppColors.premiumGradient,
+            ),
           ),
         ),
         const SizedBox(width: 12),
@@ -279,8 +303,8 @@ class _StatChip extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             value,
-            style: AppTextStyles.titleSmall
-                .copyWith(fontWeight: FontWeight.w700),
+            style:
+                AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w700),
           ),
           Text(label, style: AppTextStyles.caption),
         ],
@@ -289,55 +313,94 @@ class _StatChip extends StatelessWidget {
   }
 }
 
-class _AIRecommendationCard extends StatelessWidget {
+class _AutomatedMissionBannerCard extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.primary.withOpacity(0.3),
-          width: 1,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final missionState = ref.watch(missionProvider);
+    final completed = missionState.completedCount;
+    final total = missionState.totalCount > 0 ? missionState.totalCount : 6;
+
+    return InkWell(
+      onTap: () => context.push(AppRoutes.pet),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.45),
+            width: 1.2,
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                color: AppColors.primary,
+                size: 24,
+              ),
             ),
-            child: const Icon(
-              Icons.auto_awesome_rounded,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Nhiệm vụ Tự động',
+                          style: AppTextStyles.labelLarge
+                              .copyWith(color: AppColors.primary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.gold.withValues(alpha: 0.16),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '$completed/$total Xong',
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.gold,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Tự động theo dõi tiến độ công việc, phiên Pomodoro & nhận thưởng Token.',
+                    style: AppTextStyles.bodySmall
+                        .copyWith(color: AppColors.textSecondary),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
               color: AppColors.primary,
-              size: 22,
+              size: 16,
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'AI Recommendation',
-                  style: AppTextStyles.labelMedium
-                      .copyWith(color: AppColors.primary),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Complete your Flutter assignment first — it\'s due today!',
-                  style: AppTextStyles.bodySmall
-                      .copyWith(color: AppColors.textSecondary),
-                  maxLines: 2,
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -347,25 +410,48 @@ class _DemoTaskList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final todayTasks = ref.watch(todayTasksProvider);
+    final allTasks = ref.watch(taskListProvider).tasks;
+    final tasks = todayTasks.isNotEmpty ? todayTasks : allTasks;
 
-    if (todayTasks.isEmpty) {
+    if (tasks.isEmpty) {
       return Container(
         padding: const EdgeInsets.symmetric(vertical: 30),
         alignment: Alignment.center,
         child: Text(
           'No tasks for today! 🎉',
-          style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+          style:
+              AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
         ),
       );
     }
 
     return Column(
-      children: todayTasks
-          .take(4) // Show up to 4 tasks
+      children: tasks
+          .take(4)
           .map((task) => _DemoTaskItem(
-                title: task.title,
-                isDone: task.isCompleted,
-                priority: task.priority.value,
+                task: task,
+                onToggle: () async {
+                  final wasDone = task.isCompleted;
+                  await ref
+                      .read(taskListProvider.notifier)
+                      .toggleTaskCompletion(task.id);
+                  await ref
+                      .read(missionProvider.notifier)
+                      .loadMissions(silent: true);
+                  await ref.read(walletProvider.notifier).refreshWallet();
+                  if (!wasDone && context.mounted) {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          '✅ Hoàn thành "${task.title}" (+${task.tokenReward} 🪙)! Đã lưu lịch sử Ví.',
+                        ),
+                        backgroundColor: AppColors.success,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                },
               ))
           .toList(),
     );
@@ -373,18 +459,16 @@ class _DemoTaskList extends ConsumerWidget {
 }
 
 class _DemoTaskItem extends StatelessWidget {
-  final String title;
-  final bool isDone;
-  final String priority;
+  final TaskModel task;
+  final VoidCallback onToggle;
 
   const _DemoTaskItem({
-    required this.title,
-    required this.isDone,
-    required this.priority,
+    required this.task,
+    required this.onToggle,
   });
 
   Color _priorityColor() {
-    switch (priority) {
+    switch (task.priority.value) {
       case 'low':
         return AppColors.priorityLow;
       case 'medium':
@@ -400,52 +484,72 @@ class _DemoTaskItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.borderDark),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 22,
-            height: 22,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isDone
-                  ? AppColors.primary.withValues(alpha: 0.2)
-                  : Colors.transparent,
-              border: Border.all(
-                color: isDone ? AppColors.primary : AppColors.borderDark,
-                width: 2,
+    final isDone = task.isCompleted;
+    return InkWell(
+      onTap: onToggle,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.borderDark),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isDone
+                    ? AppColors.primary.withValues(alpha: 0.2)
+                    : Colors.transparent,
+                border: Border.all(
+                  color: isDone ? AppColors.primary : AppColors.borderDark,
+                  width: 2,
+                ),
+              ),
+              child: isDone
+                  ? const Icon(Icons.check_rounded,
+                      color: AppColors.primary, size: 14)
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                task.title,
+                style: isDone
+                    ? AppTextStyles.taskTitleCompleted
+                    : AppTextStyles.taskTitle,
               ),
             ),
-            child: isDone
-                ? const Icon(Icons.check_rounded,
-                    color: AppColors.primary, size: 14)
-                : null,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              title,
-              style: isDone
-                  ? AppTextStyles.taskTitleCompleted
-                  : AppTextStyles.taskTitle,
+            Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.gold.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '+${task.tokenReward} 🪙',
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.gold,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
-          ),
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: _priorityColor(),
-              shape: BoxShape.circle,
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: _priorityColor(),
+                shape: BoxShape.circle,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -462,8 +566,8 @@ class _QuickActionsGrid extends StatelessWidget {
         'route': AppRoutes.pomodoro,
       },
       {
-        'icon': Icons.pets_rounded,
-        'label': 'My Pet',
+        'icon': Icons.auto_awesome_motion_rounded,
+        'label': 'Nhiệm vụ Tự động',
         'color': AppColors.accent,
         'route': AppRoutes.pet,
       },
@@ -493,8 +597,7 @@ class _QuickActionsGrid extends StatelessWidget {
                 icon: action['icon'] as IconData,
                 label: action['label'] as String,
                 color: action['color'] as Color,
-                onTap: () =>
-                    context.push(action['route'] as String),
+                onTap: () => context.push(action['route'] as String),
               ))
           .toList(),
     );
@@ -521,18 +624,21 @@ class _QuickActionCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
             Icon(icon, color: color, size: 22),
             const SizedBox(width: 10),
-            Text(
-              label,
-              style: AppTextStyles.labelMedium
-                  .copyWith(color: AppColors.textPrimary),
+            Expanded(
+              child: Text(
+                label,
+                style: AppTextStyles.labelMedium
+                    .copyWith(color: AppColors.textPrimary),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),

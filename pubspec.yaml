@@ -9,6 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  http: ^1.2.0
 
   # State Management
   flutter_riverpod: ^2.5.1
@@ -51,6 +52,8 @@ dependencies:
   permission_handler: ^11.3.1
   image_picker: ^1.1.2
   share_plus: ^10.0.2
+  socket_io_client: ^2.0.0
+  webview_flutter: ^4.10.0
 
 dev_dependencies:
   flutter_test:

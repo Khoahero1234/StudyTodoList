@@ -95,6 +95,30 @@ class AuthRepository {
     );
   }
 
+  Future<UserModel> updateProfile({
+    String? displayName,
+    String? username,
+    String? bio,
+    String? avatarUrl,
+  }) async {
+    return _remoteDataSource.updateProfile(
+      displayName: displayName,
+      username: username,
+      bio: bio,
+      avatarUrl: avatarUrl,
+    );
+  }
+
+  Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    return _remoteDataSource.changePassword(
+      oldPassword: oldPassword,
+      newPassword: newPassword,
+    );
+  }
+
   Future<bool> hasValidSession() async {
     final token = await _secureStorage.read(StorageKeys.accessToken);
     return token != null && token.isNotEmpty;

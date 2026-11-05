@@ -172,6 +172,97 @@ exports.getCurrentUser = async (req, res) => {
     }
 };
 
+// ==========================================
+// THÊM MỚI: Cập nhật thông tin Profile
+// ==========================================
+exports.updateProfile = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { displayName, username, bio, avatarUrl } = req.body;
+
+        if (username) {
+            const existingUser = await prisma.user.findFirst({
+                where: {
+                    username,
+                    NOT: { id: userId }
+                }
+            });
+            if (existingUser) {
+                return res.status(400).json({ success: false, message: 'Username already taken' });
+            }
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+                displayName,
+                username,
+                bio,
+                avatarUrl
+            },
+            include: {
+                wallet: true,
+                premiumSub: true,
+                loginStreak: true
+            }
+        });
+
+        res.json({
+            success: true,
+            message: 'Profile updated successfully',
+            user: {
+                id: updatedUser.id,
+                email: updatedUser.email,
+                username: updatedUser.username,
+                displayName: updatedUser.displayName,
+                avatarUrl: updatedUser.avatarUrl,
+                bio: updatedUser.bio,
+                currentStreak: updatedUser.loginStreak?.currentStreak || 0,
+                tokenBalance: updatedUser.wallet?.balance || 0,
+                isPremium: updatedUser.premiumSub?.status === 'ACTIVE',
+                createdAt: updatedUser.createdAt
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// ==========================================
+// THÊM MỚI: Đổi mật khẩu
+// ==========================================
+exports.changePassword = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { oldPassword, newPassword } = req.body;
+
+        if (!oldPassword || !newPassword) {
+            return res.status(400).json({ success: false, message: 'Please provide old and new password' });
+        }
+
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const isMatch = await bcrypt.compare(oldPassword, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ success: false, message: 'Incorrect old password' });
+        }
+
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: { password: hashedNewPassword }
+        });
+
+        res.json({ success: true, message: 'Password changed successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 exports.forgotPassword = (req, res) => {
     res.json({ success: true, message: 'Password reset link sent' });
 };

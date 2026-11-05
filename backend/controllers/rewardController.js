@@ -6,10 +6,6 @@ const rewardService = require('../services/rewardService');
 const walletService = require('../services/walletService');
 const petService = require('../services/petService');
 
-/**
- * GET /api/rewards
- * Returns current login streak and active rewards with claim/eligibility status.
- */
 exports.getRewards = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -17,7 +13,7 @@ exports.getRewards = async (req, res) => {
 
         const rewards = await prisma.reward.findMany({
             where: { isActive: true },
-            orderBy: { requiredStreak: 'asc' }
+            orderBy: { streakDay: 'asc' }
         });
 
         const claimedRewards = await prisma.userReward.findMany({
@@ -26,16 +22,22 @@ exports.getRewards = async (req, res) => {
 
         const claimedIds = new Set(claimedRewards.map(cr => cr.rewardId));
 
-        const formattedRewards = rewards.map(r => ({
-            id: r.id,
-            title: r.title,
-            description: r.description,
-            type: r.type,
-            amount: r.amount,
-            requiredStreak: r.requiredStreak,
-            isClaimed: claimedIds.has(r.id),
-            isEligible: streak.currentStreak >= r.requiredStreak
-        }));
+        const formattedRewards = rewards.map(r => {
+            const reqStreak = r.streakDay ?? 1;
+            return {
+                id: r.id,
+                title: r.name,
+                name: r.name,
+                description: r.description,
+                type: r.type,
+                amount: r.value,
+                value: r.value,
+                requiredStreak: reqStreak,
+                streakDay: reqStreak,
+                isClaimed: claimedIds.has(r.id),
+                isEligible: streak.currentStreak >= reqStreak
+            };
+        });
 
         res.json({
             success: true,
@@ -55,19 +57,15 @@ exports.getRewards = async (req, res) => {
     }
 };
 
-/**
- * POST /api/rewards/claim/:rewardId
- * Claims a daily streak reward if eligible. Calls walletService.adjustBalance for tokens.
- */
 exports.claimReward = async (req, res) => {
     try {
         const userId = req.user.id;
         const { rewardId } = req.params;
 
-        // Check eligibility via rewardService
-        const { reward, streak } = await rewardService.checkRewardEligibility(userId, rewardId);
+        const { reward } = await rewardService.checkRewardEligibility(userId, rewardId);
+        const rewardAmount = reward.value ?? reward.amount ?? 0;
+        const rewardTitle = reward.name ?? reward.title ?? 'Streak Reward';
 
-        // Perform reward claiming and distribution
         const userReward = await prisma.$transaction(async (tx) => {
             const claim = await tx.userReward.create({
                 data: {
@@ -76,23 +74,21 @@ exports.claimReward = async (req, res) => {
                 }
             });
 
-            const rewardType = reward.type.toLowerCase();
+            const rewardType = (reward.type || 'TOKEN').toLowerCase();
 
-            // Distribute reward according to type
             if (rewardType === 'token' || rewardType === 'reward') {
-                // Mandatory reuse of Module 1 walletService.adjustBalance
                 await walletService.adjustBalance(
                     userId,
-                    reward.amount,
+                    rewardAmount,
                     'REWARD',
-                    `Claimed streak reward: ${reward.title}`,
-                    reward.id
+                    `Nhận thưởng chuỗi đăng nhập: ${rewardTitle}`,
+                    reward.id,
+                    tx
                 );
             } else if (rewardType === 'xp') {
-                await petService.gainXp(userId, reward.amount);
+                await petService.gainXp(userId, rewardAmount);
             } else if (rewardType === 'item') {
-                // If reward specifies an item, find/upsert an item in InventoryItem
-                const sampleProduct = await tx.product.findFirst({ where: { isAvailable: true } });
+                const sampleProduct = await tx.product.findFirst({ where: { isAvailable: true, deletedAt: null } });
                 if (sampleProduct) {
                     await tx.inventoryItem.upsert({
                         where: {
@@ -115,7 +111,7 @@ exports.claimReward = async (req, res) => {
             success: true,
             data: {
                 userReward,
-                message: `Successfully claimed ${reward.amount} ${reward.type}!`
+                message: `Đã nhận thành công ${rewardAmount} ${reward.type}!`
             },
             error: null
         });

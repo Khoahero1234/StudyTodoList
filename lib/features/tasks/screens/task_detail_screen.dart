@@ -66,28 +66,21 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   }
 
   Future<void> _toggleComplete() async {
-    if (_task == null) return;
+    if (_task == null || _task!.isCompleted) return; // Không cho phép bỏ hoàn thành để tránh bug farm token
     final notifier = ref.read(taskListProvider.notifier);
     notifier.toggleTaskCompletion(widget.taskId);
 
-    if (!_task!.isCompleted) {
-      final TaskModel updated;
-      if (kUseMock) {
-        updated = await ref
-            .read(mockTaskRepositoryProvider)
-            .completeTask(widget.taskId);
-      } else {
-        updated = await ref
-            .read(taskRepositoryProvider)!
-            .completeTask(widget.taskId);
-      }
-      setState(() => _task = updated);
+    final TaskModel updated;
+    if (kUseMock) {
+      updated = await ref
+          .read(mockTaskRepositoryProvider)
+          .completeTask(widget.taskId);
     } else {
-      setState(() => _task = _task!.copyWith(
-            status: TaskStatus.pending,
-            completedAt: null,
-          ));
+      updated = await ref
+          .read(taskRepositoryProvider)!
+          .completeTask(widget.taskId);
     }
+    setState(() => _task = updated);
   }
 
   Future<void> _toggleSubTask(String subtaskId) async {
@@ -430,16 +423,34 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Complete button
-                AppButton(
-                  label: task.isCompleted
-                      ? 'Mark as Incomplete'
-                      : 'Mark as Complete ✓',
-                  variant: task.isCompleted
-                      ? AppButtonVariant.outline
-                      : AppButtonVariant.primary,
-                  onPressed: _toggleComplete,
-                ),
+                // Complete button or success banner (Once completed, hide "Mark as Incomplete" to prevent token bug)
+                if (!task.isCompleted)
+                  AppButton(
+                    label: 'Mark as Complete ✓',
+                    variant: AppButtonVariant.primary,
+                    onPressed: _toggleComplete,
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.success.withOpacity(0.4)),
+                    ),
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Đã hoàn thành (Token đã được cộng)',
+                          style: AppTextStyles.labelMedium.copyWith(color: AppColors.success, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
                 const SizedBox(height: 100),
               ]),
             ),

@@ -21,14 +21,14 @@ class TokenTransactionModel {
 
   factory TokenTransactionModel.fromJson(Map<String, dynamic> json) {
     return TokenTransactionModel(
-      id: json['id'] as String? ?? '',
-      walletId: json['walletId'] as String? ?? '',
-      amount: json['amount'] as int? ?? 0,
-      type: json['type'] as String? ?? 'TRANSACTION',
-      description: json['description'] as String?,
-      referenceId: json['referenceId'] as String?,
+      id: json['id']?.toString() ?? '',
+      walletId: json['walletId']?.toString() ?? '',
+      amount: (json['amount'] as num?)?.toInt() ?? 0,
+      type: json['type']?.toString() ?? 'TRANSACTION',
+      description: json['description']?.toString(),
+      referenceId: json['referenceId']?.toString(),
       createdAt: json['createdAt'] != null
-          ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
+          ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
           : DateTime.now(),
     );
   }

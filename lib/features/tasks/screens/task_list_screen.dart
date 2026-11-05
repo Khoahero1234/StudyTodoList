@@ -8,6 +8,8 @@ import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../models/task_model.dart';
+import '../../missions/providers/mission_provider.dart';
+import '../../wallet/providers/wallet_provider.dart';
 import '../providers/task_provider.dart';
 import '../widgets/task_card.dart';
 import '../widgets/task_filter_bar.dart';
@@ -50,11 +52,11 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
         _scrollController.position.maxScrollExtent - 200) {
       final filter = ref.read(taskFilterProvider);
       ref.read(taskListProvider.notifier).loadMore(
-        status: filter.status,
-        priority: filter.priority,
-        categoryId: filter.categoryId,
-        search: filter.search,
-      );
+            status: filter.status,
+            priority: filter.priority,
+            categoryId: filter.categoryId,
+            search: filter.search,
+          );
     }
   }
 
@@ -62,13 +64,13 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
     final filter = ref.read(taskFilterProvider);
     _searchController.text = filter.search;
     ref.read(taskListProvider.notifier).loadTasks(
-      status: filter.status,
-      priority: filter.priority,
-      categoryId: filter.categoryId,
-      search: filter.search,
-      dueDateFrom: filter.dueDateFrom,
-      dueDateTo: filter.dueDateTo,
-    );
+          status: filter.status,
+          priority: filter.priority,
+          categoryId: filter.categoryId,
+          search: filter.search,
+          dueDateFrom: filter.dueDateFrom,
+          dueDateTo: filter.dueDateTo,
+        );
   }
 
   void _onSearchChanged(String query) {
@@ -78,13 +80,13 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
       final updated = current.copyWith(search: query.trim());
       ref.read(taskFilterProvider.notifier).state = updated;
       ref.read(taskListProvider.notifier).loadTasks(
-        status: updated.status,
-        priority: updated.priority,
-        categoryId: updated.categoryId,
-        search: updated.search,
-        dueDateFrom: updated.dueDateFrom,
-        dueDateTo: updated.dueDateTo,
-      );
+            status: updated.status,
+            priority: updated.priority,
+            categoryId: updated.categoryId,
+            search: updated.search,
+            dueDateFrom: updated.dueDateFrom,
+            dueDateTo: updated.dueDateTo,
+          );
     });
   }
 
@@ -94,13 +96,13 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
       _searchController.text = newFilter.search;
     }
     ref.read(taskListProvider.notifier).loadTasks(
-      status: newFilter.status,
-      priority: newFilter.priority,
-      categoryId: newFilter.categoryId,
-      search: newFilter.search,
-      dueDateFrom: newFilter.dueDateFrom,
-      dueDateTo: newFilter.dueDateTo,
-    );
+          status: newFilter.status,
+          priority: newFilter.priority,
+          categoryId: newFilter.categoryId,
+          search: newFilter.search,
+          dueDateFrom: newFilter.dueDateFrom,
+          dueDateTo: newFilter.dueDateTo,
+        );
   }
 
   void _showFilterBottomSheet() {
@@ -155,12 +157,13 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
                         selectedColor: AppColors.primary.withValues(alpha: 0.2),
                       ),
                       ...TaskPriority.values.map(
-                            (p) => FilterChip(
+                        (p) => FilterChip(
                           label: Text(p.label),
                           selected: tempPriority == p,
                           onSelected: (sel) => setModalState(
-                                  () => tempPriority = sel ? p : null),
-                          selectedColor: AppColors.primary.withValues(alpha: 0.2),
+                              () => tempPriority = sel ? p : null),
+                          selectedColor:
+                              AppColors.primary.withValues(alpha: 0.2),
                         ),
                       ),
                     ],
@@ -178,16 +181,18 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
                       FilterChip(
                         label: const Text('All'),
                         selected: tempStatus == null,
-                        onSelected: (_) => setModalState(() => tempStatus = null),
+                        onSelected: (_) =>
+                            setModalState(() => tempStatus = null),
                         selectedColor: AppColors.primary.withValues(alpha: 0.2),
                       ),
                       ...TaskStatus.values.map(
-                            (s) => FilterChip(
+                        (s) => FilterChip(
                           label: Text(s.value.replaceAll('_', ' ')),
                           selected: tempStatus == s,
                           onSelected: (sel) =>
                               setModalState(() => tempStatus = sel ? s : null),
-                          selectedColor: AppColors.primary.withValues(alpha: 0.2),
+                          selectedColor:
+                              AppColors.primary.withValues(alpha: 0.2),
                         ),
                       ),
                     ],
@@ -205,16 +210,18 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
                       FilterChip(
                         label: const Text('All'),
                         selected: tempCategory == null,
-                        onSelected: (_) => setModalState(() => tempCategory = null),
+                        onSelected: (_) =>
+                            setModalState(() => tempCategory = null),
                         selectedColor: AppColors.primary.withValues(alpha: 0.2),
                       ),
                       ...mockCategories.map(
-                            (cat) => FilterChip(
+                        (cat) => FilterChip(
                           label: Text(cat.name),
                           selected: tempCategory == cat.id,
                           onSelected: (sel) => setModalState(
-                                  () => tempCategory = sel ? cat.id : null),
-                          selectedColor: AppColors.primary.withValues(alpha: 0.2),
+                              () => tempCategory = sel ? cat.id : null),
+                          selectedColor:
+                              AppColors.primary.withValues(alpha: 0.2),
                         ),
                       ),
                     ],
@@ -279,17 +286,17 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
       appBar: AppBar(
         title: _showSearch
             ? TextField(
-          controller: _searchController,
-          autofocus: true,
-          style: AppTextStyles.bodyMedium,
-          decoration: InputDecoration(
-            hintText: 'Search tasks...',
-            hintStyle: AppTextStyles.bodyMedium
-                .copyWith(color: AppColors.textMuted),
-            border: InputBorder.none,
-          ),
-          onChanged: _onSearchChanged,
-        )
+                controller: _searchController,
+                autofocus: true,
+                style: AppTextStyles.bodyMedium,
+                decoration: InputDecoration(
+                  hintText: 'Search tasks...',
+                  hintStyle: AppTextStyles.bodyMedium
+                      .copyWith(color: AppColors.textMuted),
+                  border: InputBorder.none,
+                ),
+                onChanged: _onSearchChanged,
+              )
             : Text('Tasks', style: AppTextStyles.titleLarge),
         backgroundColor: AppColors.backgroundDark,
         actions: [
@@ -340,6 +347,51 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
       ),
       body: Column(
         children: [
+          // Banner mở nhanh Nhiệm vụ Tự động & Test +Token
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
+            child: InkWell(
+              onTap: () => context.push(AppRoutes.pet),
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.bolt_rounded,
+                        color: AppColors.gold, size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Nhiệm vụ Học tập Tự động (+Token)',
+                            style: AppTextStyles.labelLarge.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            'Tự động hoàn thành, cộng 🪙 & ghi lịch sử giao dịch chi tiết',
+                            style: AppTextStyles.caption.copyWith(
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios_rounded,
+                        color: Colors.white, size: 15),
+                  ],
+                ),
+              ),
+            ),
+          ),
           // Status Tabs
           _buildStatusTabs(filter),
 
@@ -370,6 +422,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
           if (newTask != null) {
             ref.read(taskListProvider.notifier).addTask(newTask);
           }
+          _fetchInitialTasks();
         },
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add_rounded, color: Colors.white),
@@ -477,9 +530,26 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen>
         final task = state.tasks[index];
         return TaskCard(
           task: task,
-          onToggle: () {
-            ref.read(taskListProvider.notifier).toggleTaskCompletion(task.id);
-            ref.read(taskListProvider.notifier).completeTask(task.id);
+          onToggle: () async {
+            final wasCompleted = task.isCompleted;
+            await ref
+                .read(taskListProvider.notifier)
+                .toggleTaskCompletion(task.id);
+            await ref.read(missionProvider.notifier).loadMissions(silent: true);
+            await ref.read(walletProvider.notifier).refreshWallet();
+            if (!wasCompleted && context.mounted) {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    '✅ Hoàn thành "${task.title}" (+${task.tokenReward} 🪙)! Đã cập nhật nhiệm vụ tự động & lịch sử Ví.',
+                  ),
+                  backgroundColor: AppColors.success,
+                  behavior: SnackBarBehavior.floating,
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
           },
           onTap: () async {
             await context.push('/tasks/${task.id}');

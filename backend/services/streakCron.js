@@ -29,10 +29,6 @@ function initStreakCron() {
                         where: { id: streak.id },
                         data: { currentStreak: 0 }
                     });
-                    await prisma.user.update({
-                        where: { id: streak.userId },
-                        data: { currentStreak: 0 }
-                    });
                 }
             }
             console.log('[streakCron] Login streak check completed successfully.');

@@ -8,16 +8,13 @@
     "start": "node server.js",
     "test": "jest --detectOpenHandles",
     "lint": "eslint .",
-    "migrate:deploy": "npx prisma migrate deploy",
-    "postinstall": "prisma generate"
+    "migrate:deploy": "npx prisma migrate deploy"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@prisma/client": "^6.19.3",
-    "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^6.19.3",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
@@ -30,8 +27,7 @@
     "openai": "^7.39.0",
     "pg": "^8.23.1",
     "socket.io": "^4.8.4",
-    "node-fetch": "^2.7.0",
-    "openai": "^7.39.0"
+    "vnpay": "^2.5.0"
   },
   "devDependencies": {
     "eslint": "^9.0.0",

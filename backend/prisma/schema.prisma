@@ -67,6 +67,13 @@ enum TokenTransactionType {
   PREMIUM
 }
 
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
 enum OrderStatus {
   PENDING
   COMPLETED
@@ -144,6 +151,7 @@ model User {
   studyRoomMembers    StudyRoomMember[]
   wallet              Wallet?
   tokenTransactions   TokenTransaction[]
+  paymentTransactions PaymentTransaction[]
   orders              Order[]
   inventoryItems      InventoryItem[]
   premiumSub          PremiumSubscription?
@@ -757,4 +765,28 @@ model UserReward {
 
   @@unique([userId, rewardId])
   @@index([userId])
+}
+
+
+// ============================================================
+// 15. PAYMENT TRANSACTIONS (VNPAY)
+// ============================================================
+
+model PaymentTransaction {
+  id               String        @id @default(uuid())
+  userId           String
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  txnRef           String        @unique
+  amount           Int
+  tokens           Int
+  status           PaymentStatus @default(PENDING)
+  bankCode         String?
+  vnpTransactionNo String?
+  orderInfo        String?
+  paymentDate      DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([txnRef])
 }

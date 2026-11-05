@@ -164,6 +164,51 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthState.unauthenticated();
   }
 
+  Future<void> updateProfile({
+    String? displayName,
+    String? username,
+    String? bio,
+    String? avatarUrl,
+  }) async {
+    try {
+      UserModel? updatedUser;
+      if (kUseMock) {
+        final currentUser = state.user;
+        if (currentUser != null) {
+          // Tạo UserModel mới với username đã thay đổi để app nhận ngay lập tức
+          updatedUser = currentUser.copyWith(
+            username: username ?? currentUser.username,
+          );
+        }
+      } else {
+        updatedUser = await _repository!.updateProfile(
+          displayName: displayName,
+          username: username,
+          bio: bio,
+          avatarUrl: avatarUrl,
+        );
+      }
+
+      if (updatedUser != null) {
+        state = AuthState.authenticated(updatedUser);
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    if (!kUseMock) {
+      await _repository!.changePassword(
+        oldPassword: oldPassword,
+        newPassword: newPassword,
+      );
+    }
+  }
+
   Future<void> forgotPassword(String email) async {
     if (kUseMock) {
       await _mockRepository!.forgotPassword(email);
@@ -177,6 +222,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> refreshUser() async {
+    if (kUseMock) return;
     try {
       final user = await _repository!.getMe();
       state = AuthState.authenticated(user);
@@ -185,8 +231,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   void addTokens(int amount) {
     if (state.user != null) {
+      final newBalance = (state.user!.tokenBalance + amount).clamp(0, 999999999);
       final updatedUser = state.user!.copyWith(
-        tokenBalance: state.user!.tokenBalance + amount,
+        tokenBalance: newBalance,
+      );
+      state = AuthState.authenticated(updatedUser);
+    }
+  }
+
+  void deductTokens(int amount) {
+    addTokens(-amount);
+  }
+
+  void setTokenBalance(int newBalance) {
+    if (state.user != null && state.user!.tokenBalance != newBalance) {
+      final updatedUser = state.user!.copyWith(
+        tokenBalance: newBalance,
       );
       state = AuthState.authenticated(updatedUser);
     }

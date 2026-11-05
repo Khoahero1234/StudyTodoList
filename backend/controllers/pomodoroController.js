@@ -1,18 +1,22 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const walletService = require('../services/walletService');
+const petService = require('../services/petService');
+const missionService = require('../services/missionService');
 
 // 1. Bắt đầu phiên Pomodoro mới
 const startPomodoroSession = async (req, res) => {
   try {
     const { userId, taskId, focusMinutes, breakMinutes, sessionsPlanned } = req.body;
+    const resolvedUserId = (req.user && req.user.id) || userId;
 
-    if (!userId) {
+    if (!resolvedUserId) {
       return res.status(400).json({ success: false, message: 'Thiếu thông tin userId!' });
     }
 
     const session = await prisma.pomodoroSession.create({
       data: {
-        userId,
+        userId: resolvedUserId,
         taskId: taskId || null,
         focusMinutes: focusMinutes || 25,
         breakMinutes: breakMinutes || 5,
@@ -32,7 +36,7 @@ const startPomodoroSession = async (req, res) => {
   }
 };
 
-// 2. Kết thúc phiên Pomodoro và cập nhật thống kê ngày
+// 2. Kết thúc phiên Pomodoro, cộng Token vào ví & kiểm tra nhiệm vụ tự động trong ngày
 const endPomodoroSession = async (req, res) => {
   try {
     const { sessionId, sessionsCompleted, xpEarned, tokenEarned } = req.body;
@@ -41,14 +45,17 @@ const endPomodoroSession = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Thiếu sessionId!' });
     }
 
+    const finalXp = xpEarned || 25;
+    const finalToken = tokenEarned || 15;
+
     // Cập nhật phiên pomodoro thành đã hoàn thành
     const updatedSession = await prisma.pomodoroSession.update({
       where: { id: sessionId },
       data: {
         sessionsCompleted: sessionsCompleted || 1,
         isCompleted: true,
-        xpEarned: xpEarned || 10,
-        tokenEarned: tokenEarned || 5,
+        xpEarned: finalXp,
+        tokenEarned: finalToken,
         endedAt: new Date(),
       },
     });
@@ -69,7 +76,6 @@ const endPomodoroSession = async (req, res) => {
         pomodoroSessions: { increment: 1 },
         focusMinutes: { increment: updatedSession.focusMinutes },
         xpEarned: { increment: updatedSession.xpEarned },
-        tokensEarned: { increment: updatedSession.tokenEarned },
       },
       create: {
         userId: updatedSession.userId,
@@ -77,14 +83,37 @@ const endPomodoroSession = async (req, res) => {
         pomodoroSessions: 1,
         focusMinutes: updatedSession.focusMinutes,
         xpEarned: updatedSession.xpEarned,
-        tokensEarned: updatedSession.tokenEarned,
       },
     });
 
+    // Cộng Token trực tiếp vào ví và lưu lịch sử giao dịch rõ lý do (chống cộng lặp với referenceId)
+    const pomoRefId = `pomodoro:${updatedSession.id}`;
+    let alreadyAwarded = false;
+    if (finalToken > 0) {
+      const result = await walletService.adjustBalance(
+        updatedSession.userId,
+        finalToken,
+        'REWARD',
+        `Hoàn thành phiên tập trung Pomodoro (${updatedSession.focusMinutes} phút)`,
+        pomoRefId
+      );
+      alreadyAwarded = Boolean(result && result.alreadyAwarded);
+    }
+
+    if (!alreadyAwarded && finalXp > 0) {
+      try {
+        await petService.gainXp(updatedSession.userId, finalXp);
+      } catch (_) {}
+    }
+
+    // Tự động kiểm tra và trao thưởng các nhiệm vụ tự động hàng ngày (Pomodoro / Focus 60 phút)
+    const missionEvaluation = await missionService.evaluateAndAutoRewardMissions(updatedSession.userId);
+
     return res.status(200).json({
       success: true,
-      message: 'Đã hoàn thành phiên Pomodoro và cập nhật thống kê!',
+      message: `Hoàn thành phiên Pomodoro (+${finalToken} Token)!`,
       data: updatedSession,
+      missionEvaluation,
     });
   } catch (error) {
     console.error('Lỗi end Pomodoro:', error);

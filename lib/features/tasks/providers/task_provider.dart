@@ -223,8 +223,12 @@ class TaskListNotifier extends StateNotifier<TaskListState> {
         tasks: state.tasks.map((t) => t.id == id ? updated : t).toList(),
       );
       if (!taskBefore.isCompleted && updated.isCompleted) {
-        _ref.read(authProvider.notifier).addTokens(updated.tokenReward);
-        _ref.read(walletProvider.notifier).addRewardTransaction(updated.tokenReward, updated.title);
+        if (kUseMock) {
+          _ref.read(authProvider.notifier).addTokens(updated.tokenReward);
+          _ref.read(walletProvider.notifier).addRewardTransaction(updated.tokenReward, updated.title);
+        } else {
+          _ref.read(walletProvider.notifier).refreshWallet();
+        }
       }
       _ref.read(authProvider.notifier).refreshUser();
     } catch (_) {}
@@ -272,8 +276,12 @@ class TaskListNotifier extends StateNotifier<TaskListState> {
         }
       }
       if (isCompleting) {
-        _ref.read(authProvider.notifier).addTokens(updatedTask.tokenReward);
-        _ref.read(walletProvider.notifier).addRewardTransaction(updatedTask.tokenReward, updatedTask.title);
+        if (kUseMock) {
+          _ref.read(authProvider.notifier).addTokens(updatedTask.tokenReward);
+          _ref.read(walletProvider.notifier).addRewardTransaction(updatedTask.tokenReward, updatedTask.title);
+        } else {
+          _ref.read(walletProvider.notifier).refreshWallet();
+        }
       }
       _ref.read(authProvider.notifier).refreshUser();
     } catch (_) {}

@@ -1,5 +1,6 @@
 // backend/create_admin.js
 // Script tạo tài khoản Admin
+require('dotenv').config();
 
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcrypt');
